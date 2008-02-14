@@ -1,0 +1,28 @@
+This is a repackaging of the Lil mudlib. It is
+incredibly barebones...you get a few commands, and
+that's it. This is for folks interested in making
+their own "from scratch" lib. Strictly speaking it
+isn't "from scratch" if you use it, but man, it's close.
+
+Please note that since you are still using the
+FluffOS driver, your mud's use will be subject 
+to the MudOS and LPMud licenses.
+
+There is no official support for this. 
+If you're actually planning to use
+this it's because you are a hardcore...and I mean
+*hard* *core*, do-it-yourselfer. So, do it yourself.
+
+Instructions:
+-------------
+
+* type: cd fluffos-2.9-ds2.09/
+* type: ./configure lil
+* type: make
+* type: make install
+* type: cd ../bin
+* type: vi mudos.cfg
+* change the mud bin and lib paths to wherever you put the mud.
+* type: ./driver ./mudos.cfg &
+
+-Cratylus 13 Feb 2008

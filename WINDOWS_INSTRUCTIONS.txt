@@ -1,0 +1,24 @@
+IMPORTANT NOTE:
+--------------
+
+The Lil mudlib is for expert LP coders. It is NOT for
+beginners. If you are not a hardcore LP lib coder, this
+is not the lib for you. Choose a lib from the lpmuds.net
+downloads page instead: http://lpmuds.net/downloads.html
+
+
+If you *are* a hardcore LP lib coder:
+
+1) unzip the distribution file.
+
+2) Move/rename the folder so that it is c:\lil
+
+3) there should now be a c:\lil folder, containing bin, lib, etc. If
+   there isn't one, rename the directory you just created to c:\lil
+   For example, there should be a c:\lil\bin, c:\lil\lib, etc.
+
+4) double-click on c:\lil\win32\mud.bat
+
+5) telnet to your local machine on port 4000. 
+
+6) Enjoy!

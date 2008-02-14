@@ -1,0 +1,11 @@
+----------------------------------------------------------------------------
+Testsuite (MudOS v22.2b14) starting up on Solaris - Thu Jan  4 17:50:10 2007
+
+
+Connection to address server (localhost 7374) refused.
+Initializations complete.
+
+Accepting connections on port 4000.
+******** FATAL ERROR: Process interrupted
+MudOS driver attempting to exit gracefully.
+crash() in master called successfully.  Aborting.
