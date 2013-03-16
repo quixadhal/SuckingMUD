@@ -16,13 +16,14 @@ this it's because you are a hardcore...and I mean
 Instructions:
 -------------
 
-* type: cd fluffos-2.9-ds2.09/
+* type: cd fluffos/src
 * type: ./configure lil
 * type: make
 * type: make install
-* type: cd ../bin
-* type: vi mudos.cfg
+* type: cp ../bin/driver ../../bin/
+* type: cd ../../bin
+* type: vi lil.cfg
 * change the mud bin and lib paths to wherever you put the mud.
-* type: ./driver ./mudos.cfg &
+* type: ./driver ./lil.cfg &
 
 -Cratylus 13 Feb 2008
