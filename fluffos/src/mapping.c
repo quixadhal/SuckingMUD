@@ -35,7 +35,7 @@ mapping_node_t *locked_map_nodes = 0;
   table).
 */
 
-INLINE_STATIC int node_hash (mapping_node_t * mn) {
+INLINE_STATIC unsigned long node_hash (mapping_node_t * mn) {
     return MAP_SVAL_HASH(mn->values[0]);
 }
 
@@ -46,9 +46,7 @@ INLINE int growMap (mapping_t * m)
         int i;
         mapping_node_t **a, **b, **eltp, *elt;
 
-        if (newsize > MAX_TABLE_SIZE)
-                return 0;
-        /* resize the hash table to be twice the old size */
+       /* resize the hash table to be twice the old size */
         m->table = a = RESIZE(m->table, newsize, mapping_node_t *, TAG_MAP_TBL, "growMap");
         if (!a) {
             /*
@@ -94,12 +92,7 @@ INLINE int growMap (mapping_t * m)
   -- Truilkan 92/07/19
 */
 
-INLINE mapping_t *
-mapTraverse (m, func, extra)
-mapping_t *m;
-int (*func) (mapping_t *, mapping_node_t *, void *);
-void *extra;
-{
+INLINE mapping_t *mapTraverse (mapping_t *m, int (*func) (mapping_t *, mapping_node_t *, void *), void *extra){
         mapping_node_t *elt, *nelt;
         int j = m->table_size;
 
@@ -387,21 +380,21 @@ restore_hash_string (char ** val, svalue_t * sv)
 
         case '\\':
             {
-                char *new = cp - 1;
+                char *news = cp - 1;
 
-                if ((c = *new++ = *cp++)) {
+                if ((c = *news++ = *cp++)) {
                     while ((c = *cp++) != '"') {
                         if (c == '\\') {
-                            if (!(c = *new++ = *cp++)) return ROB_STRING_ERROR;
+                            if (!(c = *news++ = *cp++)) return ROB_STRING_ERROR;
                         }
                         else {
                             if (c == '\r')
-                                c = *new++ = '\n';
-                            else *new++ = c;
+                                c = *news++ = '\n';
+                            else *news++ = c;
                         }
                     }
                     if (!c) return ROB_STRING_ERROR;
-                    *new = '\0';
+                    *news = '\0';
                     *val = cp;
                     sv->u.string = make_shared_string(start);
                     sv->type = T_STRING;
@@ -427,8 +420,7 @@ restore_hash_string (char ** val, svalue_t * sv)
  * svalue_t_to_int: Converts an svalue into an integer index.
  */
 
-INLINE_STATIC int
-svalue_to_int (svalue_t * v)
+int svalue_to_int (svalue_t *v)
 {
     if (v->type == T_STRING && v->subtype != STRING_SHARED) {
         char *p = make_shared_string(v->u.string);
@@ -499,7 +491,7 @@ INLINE svalue_t *
 find_for_insert (mapping_t * m, svalue_t * lv, int doTheFree)
 {
         int oi = svalue_to_int(lv);
-        unsigned short i = oi & m->table_size;
+        unsigned int i = oi & m->table_size;
         mapping_node_t *n, *newnode, **a = m->table + i;
 
         debug(mapping,("mapping.c: hashed to %d\n", i));
@@ -559,7 +551,7 @@ typedef struct unique_node_s {
 typedef struct unique_m_list_s {
     unique_node_t **utable;
     struct unique_m_list_s *next;
-    unsigned short mask;
+    unsigned int mask;
 } unique_m_list_t;
 
 static unique_m_list_t *g_u_m_list = 0;
@@ -595,7 +587,7 @@ void f_unique_mapping (void)
     array_t *v = arg->u.arr, *ret;
     unsigned int oi, i, numkeys = 0, mask, size;
     unsigned short num_arg = st_num_arg;
-    unsigned short nmask;
+    unsigned int nmask;
     mapping_t *m;
     mapping_node_t **mtable, *elt;
     int *ind, j;
@@ -639,7 +631,10 @@ void f_unique_mapping (void)
     while (size--) {
         push_svalue(v->item + size);
         sv = call_efun_callback(&ftc, 1);
-        i = (oi = svalue_to_int(sv)) & mask;
+        if(sv)
+        	i = (oi = svalue_to_int(sv)) & mask;
+        else
+        	i = oi = 0;
         if ((uptr = table[i])) {
             do {
                 if (msameval(&uptr->key, sv)) {
@@ -828,7 +823,7 @@ find_in_mapping (mapping_t * m, svalue_t *lv)
 }
 
 svalue_t *
-find_string_in_mapping (mapping_t * m, char * p)
+find_string_in_mapping (mapping_t * m, const char * p)
 {
     char *ss = findstring(p);
     int i;
@@ -998,10 +993,7 @@ unique_add_to_mapping (mapping_t *m1, mapping_t *m2, int free_flag)
     m1->count += count;
 }
 
-INLINE void
-absorb_mapping(m1, m2)
-mapping_t *m1, *m2;
-{
+INLINE void absorb_mapping(mapping_t *m1, mapping_t *m2){
     if (MAP_COUNT(m2)) {
         if (m1 != m2)
             add_to_mapping(m1, m2, 0);
@@ -1085,7 +1077,7 @@ filter_mapping (svalue_t * arg, int num_arg)
     mapping_node_t **b, *newnode, *n;
     int j, count = 0, size;
     svalue_t *ret;
-    unsigned short tb_index;
+    unsigned int tb_index;
     function_to_call_t ftc;
 
     process_efun_callback(1, &ftc, F_FILTER);
@@ -1170,8 +1162,8 @@ INLINE mapping_t *
 compose_mapping (mapping_t *m1, mapping_t *m2, unsigned short flag)
 {
     mapping_node_t *elt, *elt2, **a, **b = m2->table, **prev;
-    unsigned short j = m1->table_size, deleted = 0;
-    unsigned short mask = m2->table_size;
+    unsigned int j = m1->table_size, deleted = 0;
+    unsigned int mask = m2->table_size;
     svalue_t *sv;
 
     debug(mapping,("mapping.c: compose_mapping\n"));
@@ -1321,7 +1313,7 @@ void add_mapping_array (mapping_t * m, const char * key, array_t * value)
     value->ref++;
 }
 
-void add_mapping_shared_string (mapping_t * m, char * key, char * value)
+void add_mapping_shared_string (mapping_t * m, const char * key, char * value)
 {
     svalue_t *s;
 

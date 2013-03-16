@@ -5,7 +5,7 @@
 #include "comm.h"
 
 /* used temporarily by SVALUE_STRLEN() */
-int svalue_strlen_size;
+unsigned int svalue_strlen_size;
 
 #ifdef NOISY_DEBUG
 void bp (void) {
@@ -91,7 +91,7 @@ void init_strings()
     for (htable_size = 1; htable_size < y; htable_size *= 2)
         ;
     htable_size_minus_one = htable_size - 1;
-    base_table = CALLOCATE(htable_size, block_t *, 
+    base_table = CALLOCATE(htable_size, block_t *,
                            TAG_STR_TBL, "init_strings");
 #ifdef STRING_STATS
     overhead_bytes += (sizeof(block_t *) * htable_size);
@@ -158,16 +158,19 @@ alloc_new_string (const char * string, int h)
     block_t *b;
     int len = strlen(string);
     int size;
-
+    int cut = 0;
     if (len > max_string_length) {
         len = max_string_length;
+        cut = 1;
     }
     size = sizeof(block_t) + len + 1;
     b = (block_t *) DXALLOC(size, TAG_SHARED_STRING, "alloc_new_string");
     strncpy(STRING(b), string, len);
     STRING(b)[len] = '\0';      /* strncpy doesn't put on \0 if 'from' too
                                  * long */
-    SIZE(b) = (len > USHRT_MAX ? USHRT_MAX : len);
+    if(cut)
+    	h = whashstr(STRING(b)) & htable_size_minus_one;
+    SIZE(b) = (len > UINT_MAX ? UINT_MAX : len);
     REFS(b) = 1;
     NEXT(b) = base_table[h];
     HASH(b) = h;
@@ -189,7 +192,7 @@ char *
     } else {
         if (REFS(b))
             REFS(b)++;
-        ADD_STRING(SIZE(b));
+        //no we don't! ADD_STRING(SIZE(b));
     }
     NDBG(b);
     return (STRING(b));
@@ -231,7 +234,7 @@ free_string (const char * str)
 
     b = BLOCK(str);
     DEBUG_CHECK1(b != findblock(str),"stralloc.c: free_string called on non-shared string: %s.\n", str);
-    
+
     /*
      * if a string has been ref'd USHRT_MAX times then we assume that its used
      * often enough to justify never freeing it.
@@ -246,7 +249,8 @@ free_string (const char * str)
     if (REFS(b) > 0)
         return;
 
-    h = StrHash(str);
+    //h = StrHash(str);
+    h = HASH(BLOCK(str));
     prev = base_table + h;
     while ((b = *prev)) {
         if (STRING(b) == str) {
@@ -269,7 +273,8 @@ deallocate_string (char * str)
     int h;
     block_t *b, **prev;
 
-    h = StrHash(str);
+    //h = StrHash(str);
+    h = HASH(BLOCK(str));
     prev = base_table + h;
     while ((b = *prev)) {
         if (STRING(b) == str) {
@@ -279,7 +284,7 @@ deallocate_string (char * str)
         prev = &(NEXT(b));
     }
     DEBUG_CHECK1(!b,"stralloc.c: deallocate_string called on non-shared string: %s.\n", str);
-
+    //printf("freeing string: %s\n", str);
     FREE(b);
 }
 
@@ -337,14 +342,14 @@ char *int_new_string (int size)
         return the_null_string;
     }
 #endif
-    
+
     mbt = (malloc_block_t *)DXALLOC(size + sizeof(malloc_block_t) + 1, TAG_MALLOC_STRING, tag);
-    if (size < USHRT_MAX) {
+    if (size < UINT_MAX) {
         mbt->size = size;
         ADD_NEW_STRING(size, sizeof(malloc_block_t));
     } else {
-        mbt->size = USHRT_MAX;
-        ADD_NEW_STRING(USHRT_MAX, sizeof(malloc_block_t));
+        mbt->size = UINT_MAX;
+        ADD_NEW_STRING(UINT_MAX, sizeof(malloc_block_t));
     }
     mbt->ref = 1;
     ADD_STRING(mbt->size);
@@ -359,14 +364,14 @@ char *extend_string (const char * str, int len) {
 #endif
 
     mbt = (malloc_block_t *)DREALLOC(MSTR_BLOCK(str), len + sizeof(malloc_block_t) + 1, TAG_MALLOC_STRING, "extend_string");
-    if (len < USHRT_MAX) {
+    if (len < UINT_MAX) {
         mbt->size = len;
     } else {
-        mbt->size = USHRT_MAX;
+        mbt->size = UINT_MAX;
     }
     ADD_STRING_SIZE(mbt->size - oldsize);
     CHECK_STRING_STATS;
-    
+
     return (char *)(mbt + 1);
 }
 

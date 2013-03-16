@@ -65,11 +65,12 @@
  *   * Faster than SMALLOC but more memory overhead.
  *   * Requires sbrk().
  */
-#define SYSMALLOC
+#undef SYSMALLOC
 #undef SMALLOC
 #undef BSDMALLOC
 #undef MMALLOC
-
+#undef MALLOC64
+#define MALLOC32
 /* You may optionally choose one (or none) of these malloc wrappers.  These
  * can be used in conjunction with any of the above malloc packages.
  *
@@ -254,6 +255,13 @@
  */
 #define OLD_ED
 
+/* In ed auto-indent, 
+ * 1) does the case line get indented after the switch() ?
+ * 2) How far do we indent? (this can also be set in the mudlib)
+ */
+#undef ED_INDENT_CASE
+#define ED_INDENT_SPACES 3
+
 /* SENSIBLE_MODIFIERS:
  * Turning this on changes a few things, which may break old code:
  *
@@ -383,8 +391,6 @@
  * PRAGMA_SAVE_TYPES:   save the types of function arguments for checking
  *                      calls to functions in this object by objects that
  *                      inherit it.
- * PRAGMA_SAVE_BINARY:  save a compiled binary version of this file for
- *                      faster loading next time it is needed.
  * PRAGMA_OPTIMIZE:     make a second pass over the generated code to
  *                      optimize it further.  Currently does jump threading.
  * PRAGMA_ERROR_CONTEXT:include some text telling where on the line a
@@ -491,6 +497,17 @@
 */
 #undef INTERACTIVE_CATCH_TELL
 
+/* RECEIVE_ED: define this if you want normal ed output to go to a 
+     receive_ed() apply in the player ob.  Some errors still go directly
+     to output.  Useful for post-processing (perhaps colorizing?) ed
+     output. Prototype:  mixed receive_ed(string txt, string fname);
+     If fname, return a string that ed will output, 0 to let ed handle 
+     the output in the default way, or 1 to handle the output yourself.
+     If fname == 0, output is help text and you may return any of the above
+     or an array of strings that will be more'ed.
+*/
+#undef RECEIVE_ED
+
 /* RESTRICTED_ED: define this if you want restricted ed mode enabled.
  */
 #define RESTRICTED_ED
@@ -522,7 +539,7 @@
  *   resolution is 1/60 of a second, then any time less than approxmately 15k
  *   microseconds will resolve to zero (0).
  */
-#define PROFILE_FUNCTIONS
+#undef PROFILE_FUNCTIONS
 
 /* NO_BUFFER_TYPE: if this is #define'd then LPC code using the 'buffer'
  *   type won't be allowed to compile (since the 'buffer' type won't be
@@ -628,7 +645,7 @@
 #endif
 
 /* PACKAGE_DB: efuns for external database access using msql */
-#undef PACKAGE_DB
+#define PACKAGE_DB
 
 /* If PACKAGE_DB is defined above, you must pick ONE of the following supported
  * databases
@@ -715,7 +732,7 @@
  *   comm.c's add_message(). Instead of blindly making this value larger,
  *   your mudlib should be coded to not send huge strings to users.
  */
-#define LARGEST_PRINTABLE_STRING 8192
+#define LARGEST_PRINTABLE_STRING 300000
 
 /* MESSAGE_BUFFER_SIZE: determines the size of the buffer for output that
  *   is sent to users.
@@ -736,7 +753,7 @@
  * 14      16384           256k
  * 16      65536             1M
  */
-#define APPLY_CACHE_BITS 14
+#define APPLY_CACHE_BITS 15
 
 /* CACHE_STATS: define this if you want call_other (apply_low) cache 
  * statistics.  Causes HAS_CACHE_STATS to be defined in all LPC objects.
@@ -801,11 +818,13 @@
  * config file.
  */
 /* MAX_LOCAL: maximum number of local variables allowed per LPC function */
-#define CFG_MAX_LOCAL_VARIABLES		50
+#define CFG_MAX_LOCAL_VARIABLES		250
+/* Increasing max global vars beyond 256 is not recommended */
+#define CFG_MAX_GLOBAL_VARIABLES        65530 
 
 #define CFG_EVALUATOR_STACK_SIZE 	3000000
 #define CFG_COMPILER_STACK_SIZE		600000
-#define CFG_MAX_CALL_DEPTH		150
+#define CFG_MAX_CALL_DEPTH		2500
 /* This must be one of 4, 16, 64, 256, 1024, 4096 */
 #define CFG_LIVING_HASH_SIZE		256
 
@@ -858,5 +877,12 @@
 #define USE_ICONV
 #define WOMBLES
 #undef ALLOW_INHERIT_AFTER_FUNCTION
-
+#define PACKAGE_ASYNC
+#define PROG_REF_TYPE short
+#define HAS_CONSOLE
+#define IPV6
+#undef PACKAGE_CRYPTO
+#define PACKAGE_SHA1
+#undef DTRACE
+#define PACKAGE_PCRE
 #endif

@@ -508,7 +508,7 @@ parse (const char *        cmd,            /* Command to parse */
 #ifndef NO_ENVIRONMENT
     else if (ob_or_array->type == T_OBJECT) {
         /* 1 == ob + deepinv */
-        parse_obarr = obarr = deep_inventory(ob_or_array->u.ob, 1);
+        parse_obarr = obarr = deep_inventory(ob_or_array->u.ob, 1, NULL);
     }
 #endif
     else 
@@ -1388,7 +1388,7 @@ check_adjectiv (int obix, array_t * warr, int from, int to)
     if (from == to)
         return 0;
 
-    adstr = DXALLOC(sum, TAG_TEMPORARY, "check_adjectiv");
+    adstr = (char *)DXALLOC(sum, TAG_TEMPORARY, "check_adjectiv");
 
     /*
      * If we now have: "adj1 adj2 adj3 ... adjN"

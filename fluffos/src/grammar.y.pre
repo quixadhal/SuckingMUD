@@ -1,7 +1,7 @@
 /* This is to make emacs edit this in C mode: -*-C-*- */
 
 %{
-extern char *outP;
+extern char *outp;
 #include "std.h"
 #include "compiler.h"
 #include "lex.h"
@@ -133,7 +133,6 @@ int yyparse (void);
     long number;
     float real;
     char *string;
-    int type;
     struct { short num_arg; char flags; } argument;
     ident_hash_elem_t *ihe;
     parse_node_t *node;
@@ -183,11 +182,11 @@ int yyparse (void);
 %type <ihe> L_DEFINED_NAME
 
 /* These hold a type */
-%type <type> type optional_star type_modifier_list 
-%type <type> opt_basic_type L_TYPE_MODIFIER L_BASIC_TYPE basic_type atomic_type
-%type <type> cast arg_type
+%type <number> type optional_star type_modifier_list 
+%type <number> opt_basic_type L_TYPE_MODIFIER L_BASIC_TYPE basic_type atomic_type
+%type <number> cast arg_type
 %ifdef ARRAY_RESERVED_WORD
-%type <type> opt_atomic_type
+%type <number> opt_atomic_type
 %endif
 
 /* This holds compressed and less flexible def_name information */
@@ -284,21 +283,18 @@ inheritance:
 		if (func_present)
 		    yyerror("Illegal to inherit after defining functions.");
 #endif
-#ifndef ALLOW_INHERIT_AFTER_GLOBAL_VARIABLES
 		if (var_defined)
 		    yyerror("Illegal to inherit after defining global variables.");
-#endif
 #ifndef ALLOW_INHERIT_AFTER_FUNCTION
-		if (func_present){
+		if (func_present || var_defined){
+#else
+		if (var_defined){
+#endif
 		  inherit_file = 0;
 		  YYACCEPT;
 		}
-#endif
-#ifndef ALLOW_INHERIT_AFTER_GLOBAL_VARIABLES
-               if (var_defined && inherit_file){
-                  inherit_file = 0;
-                  YYACCEPT;
-                }
+#ifdef NEVER
+		} //stupid bison
 #endif
 		ob = find_object2($3);
 		if (ob == 0) {
@@ -1972,16 +1968,16 @@ expr0:
 			/* Combine strings */
 			long n1, n2;
 			const char *s1, *s2;
-			char *new;
+			char *news;
 			int l;
 
 			n1 = $1->v.number;
 			n2 = $3->v.number;
 			s1 = PROG_STRING(n1);
 			s2 = PROG_STRING(n2);
-			new = (char *)DXALLOC( (l = strlen(s1))+strlen(s2)+1, TAG_COMPILER, "combine string" );
-			strcpy(new, s1);
-			strcat(new + l, s2);
+			news = (char *)DXALLOC( (l = strlen(s1))+strlen(s2)+1, TAG_COMPILER, "combine string" );
+			strcpy(news, s1);
+			strcat(news + l, s2);
 			/* free old strings (ordering may help shrink table) */
 			if (n1 > n2) {
 			    free_prog_string(n1); free_prog_string(n2);
@@ -1989,8 +1985,8 @@ expr0:
 			    free_prog_string(n2); free_prog_string(n1);
 			}
 			$$ = $1;
-			$$->v.number = store_prog_string(new);
-			FREE(new);
+			$$->v.number = store_prog_string(news);
+			FREE(news);
 			break;
 		    }
 		    /* Yes, this can actually happen for absurd code like:
@@ -2808,7 +2804,7 @@ expr4:
             {
 		if ($1->type == TYPE_ANY) {
 		    int cmi;
-		    unsigned char tp;
+		    unsigned short tp;
 		    
 		    if ((cmi = lookup_any_class_member($3, &tp)) != -1) {
 			CREATE_UNARY_OP_1($$, F_MEMBER, tp, $1, 0);
@@ -2831,9 +2827,11 @@ expr4:
     |   expr4 '[' comma_expr L_RANGE comma_expr ']'
             {
 %ifndef OLD_RANGE_BEHAVIOR
+%ifdef WARN_OLD_RANGE_BEHAVIOR
                 if ($1->type != TYPE_MAPPING && 
 		    $5->kind == NODE_NUMBER && $5->v.number < 0)
 		    yywarn("A negative constant as the second element of arr[x..y] no longer means indexing from the end.  Use arr[x..<y]");
+%endif
 %endif
                 $$ = make_range_node(F_NN_RANGE, $1, $3, $5);
             }
@@ -3035,7 +3033,7 @@ expr4:
 %endif
             {
 #ifdef WOMBLES
-	        if(*(outP-2) != ':')
+	        if(*(outp-2) != ':')
 		  yyerror("End of functional not found");
 #endif
 		$$ = new_node();
@@ -3072,7 +3070,7 @@ expr4:
     |   l_new_function_open ',' expr_list2 ':' ')'
             {
 #ifdef WOMBLES
-	        if(*(outP-2) != ':')
+	        if(*(outp-2) != ':')
 		  yyerror("End of functional not found");
 #endif
 		$$ = new_node();
@@ -3166,7 +3164,7 @@ expr4:
     |   L_FUNCTION_OPEN comma_expr ':' ')'
              {
 #ifdef WOMBLES
-	         if(*(outP-2) != ':')
+	         if(*(outp-2) != ':')
 		   yyerror("End of functional not found");
 #endif
 		 if (current_function_context->num_locals)
@@ -3188,7 +3186,7 @@ expr4:
     |   L_MAPPING_OPEN expr_list3 ']' ')'
 	    {
 #ifdef WOMBLES
-	        if(*(outP-2) != ']')
+	        if(*(outp-2) != ']')
 		  yyerror("End of mapping not found");
 #endif
 		CREATE_CALL($$, F_AGGREGATE_ASSOC, TYPE_MAPPING, $2);
@@ -3196,7 +3194,7 @@ expr4:
     |   L_ARRAY_OPEN expr_list '}' ')'
 	    {
 #ifdef WOMBLES
-	        if(*(outP-2) != '}')
+	        if(*(outp-2) != '}')
 		  yyerror("End of array not found");
 #endif  
 		CREATE_CALL($$, F_AGGREGATE, TYPE_ANY | TYPE_MOD_ARRAY, $2);
@@ -3367,8 +3365,26 @@ function_call:
 	    }
         expr_list ')'
             {
+		ident_hash_elem_t *ihe;
+		int f;
+
 		context = $<number>3;
-		$$ = validate_efun_call(new_efun, $4);
+		ihe = lookup_ident("clone_object");
+
+		if ((f = ihe->dn.simul_num) != -1) {
+		    $$ = $4;
+		    $$->kind = NODE_CALL_1;
+		    $$->v.number = F_SIMUL_EFUN;
+		    $$->l.number = f;
+		    $$->type = (SIMUL(f)->type) & ~DECL_MODS;
+		} else {
+		    $$ = validate_efun_call(lookup_predef("clone_object"), $4);
+#ifdef CAST_CALL_OTHERS
+		    $$->type = TYPE_UNKNOWN;
+#else
+		    $$->type = TYPE_ANY;
+#endif		  
+		}
 		$$ = check_refs(num_refs - $<number>2, $4, $$);
 		num_refs = $<number>2;
             }

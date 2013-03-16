@@ -8,7 +8,7 @@
 
 struct translation *head;
 
-static struct translation *find_translator(char *encoding){
+static struct translation *find_translator(const char *encoding){
     struct translation *cur = head;
     while(cur){
 	if(!strcmp(cur->name, encoding))
@@ -19,12 +19,12 @@ static struct translation *find_translator(char *encoding){
 }
 
 
-struct translation *get_translator(char *encoding){
+struct translation *get_translator(const char *encoding){
     struct translation *ret = find_translator(encoding);
     if(ret)
 	return ret;
-    ret = MALLOC(sizeof(struct translation));
-    char *name = MALLOC(strlen(encoding)+18+1);
+    ret = (struct translation *)MALLOC(sizeof(struct translation));
+    char *name = (char *)MALLOC(strlen(encoding)+18+1);
     strcpy(name, encoding);
 #ifdef linux
     strcat(name, "//TRANSLIT//IGNORE");
@@ -32,7 +32,7 @@ struct translation *get_translator(char *encoding){
     ret->name = name;
     ret->incoming = iconv_open("UTF-8", encoding);
     ret->outgoing = iconv_open(name, "UTF-8");
-    
+
     ret->next = 0;
     if(ret->incoming == (iconv_t)-1 || ret->outgoing == (iconv_t)-1){
 	FREE(name);
@@ -60,18 +60,17 @@ char *translate(iconv_t tr, const char *mes, int inlen, int *outlen){
     char *tmp2;
 
     if(!res){
-	res = MALLOC(1);
+      res = (char *)MALLOC(1);
 	reslen = 1;
     }
- 
+
     tmp2 = res;
     len2 = reslen;
 
     while(len){
       iconv(tr, (char **)&tmp, &len, &tmp2, &len2);
-	if(len > 1) 
 #ifdef PACKAGE_DWLIB
-	    if(tmp[0] == 0xff && tmp[1] == 0xf9){
+		if(len > 1 && tmp[0] == 0xff && tmp[1] == 0xf9){
 		len -=2;
 		tmp +=2;
 #else
@@ -80,19 +79,21 @@ char *translate(iconv_t tr, const char *mes, int inlen, int *outlen){
 	    } else {
 
 		if(E2BIG == errno){
-		  tmp = (char *)mes;
-		    len = strlen(mes)+1;
-		    FREE(res);
-		    reslen *= 2;
-		    res = MALLOC(reslen);
-		    tmp2 = res;
-		    len2 = reslen;
-		    continue;
+		  errno = 0;
+		  tmp = (unsigned char *)mes;
+		  len = strlen(mes)+1;
+		  FREE(res);
+		  reslen *= 2;
+		  res = (char *)MALLOC(reslen);
+		  tmp2 = res;
+		  len2 = reslen;
+		  continue;
 		}
 		tmp2[0] = 0;
 		*outlen = reslen - len2;
 		return res;
 	    }
+
     }
     *outlen = reslen - len2;
     return res;
@@ -173,7 +174,7 @@ void f_str_to_arr(){
 }
 
 #endif
-  
+
 #ifdef F_ARR_TO_STR
 void f_arr_to_str(){
   static struct translation *newt = 0;
@@ -181,7 +182,7 @@ void f_arr_to_str(){
     newt = get_translator("UTF-32");
   }
   int len = sp->u.arr->size;
-  int *in = MALLOC(sizeof(int)*(len+1));
+  int *in = (int *)MALLOC(sizeof(int)*(len+1));
   char *trans;
   in[len] = 0;
   while(len--)

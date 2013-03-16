@@ -53,34 +53,36 @@
 #ifndef FALSE
 #define FALSE   0
 #endif
-#define ERR             -2
-#define FATAL           (ERR-1)
-#define CHANGED         (ERR-2)
-#define SET_FAIL        (ERR-3)
-#define SUB_FAIL        (ERR-4)
-#define MEM_FAIL        (ERR-5)
-#define UNRECOG_COMMAND (ERR-6)
+#define EDERR             -2
+#define FATAL           (EDERR-1)
+#define CHANGED         (EDERR-2)
+#define SET_FAIL        (EDERR-3)
+#define SUB_FAIL        (EDERR-4)
+#define MEM_FAIL        (EDERR-5)
+#define UNRECOG_COMMAND (EDERR-6)
 
-#define BAD_LINE_RANGE  (ERR-7)
-#define BAD_LINE_NUMBER (ERR-8)
-#define SYNTAX_ERROR    (ERR-9)
-#define RANGE_ILLEGAL   (ERR-10)
-#define IS_RESTRICTED   (ERR-11)
-#define LINE_OR_RANGE_ILL (ERR-12)
-#define FILE_NAME_ERROR (ERR-13)
-#define MARK_A_TO_Z     (ERR-14)
-#define SUB_BAD_PATTERN (ERR-15)
-#define SUB_BAD_REPLACEMENT (ERR-16)
-#define BAD_DESTINATION (ERR-17)
-#define END_OF_FILE     (ERR-18)
-#define SEARCH_FAILED   (ERR-19)
-#define NO_LINE_RANGE   (ERR-20)
+#define BAD_LINE_RANGE  (EDERR-7)
+#define BAD_LINE_NUMBER (EDERR-8)
+#define SYNTAX_ERROR    (EDERR-9)
+#define RANGE_ILLEGAL   (EDERR-10)
+#define IS_RESTRICTED   (EDERR-11)
+#define LINE_OR_RANGE_ILL (EDERR-12)
+#define FILE_NAME_ERROR (EDERR-13)
+#define MARK_A_TO_Z     (EDERR-14)
+#define SUB_BAD_PATTERN (EDERR-15)
+#define SUB_BAD_REPLACEMENT (EDERR-16)
+#define BAD_DESTINATION (EDERR-17)
+#define END_OF_FILE     (EDERR-18)
+#define SEARCH_FAILED   (EDERR-19)
+#define NO_LINE_RANGE   (EDERR-20)
 
-#define BUFFER_SIZE     2048    /* stream-buffer size:  == 1 hd cluster */
+// This one hopefully holds a screen's data for the 'z' command.
+// Even if bytes per line is actually 80, this is still 50-ish lines.
+#define BUFFER_SIZE     4096    
 
 #define LGLOB           2       /* line marked global */
 
-#define ED_MAXLINE      2048    /* max number of chars per line */
+#define ED_MAXLINE      2047    /* max number of chars per line */
 #define MAXPAT          256     /* max number of chars per replacemnt pattern */
 #define MAXFNAME        256     /* max file name size */
 
@@ -90,6 +92,11 @@ typedef struct ed_line_s {
     struct ed_line_s *l_next;
     char l_buff[1];
 } ed_line_t;
+
+struct strlst {
+    char *screen;
+    struct strlst *next;
+};
 
 typedef struct ed_buffer_s {
     int nonascii;               /* count of non-ascii chars read */
@@ -109,6 +116,7 @@ typedef struct ed_buffer_s {
     int flags;
     int appending;
     int moring;                 /* used for the wait line of help */
+    struct strlst *helpout;	/* help output linked list */
 #ifdef OLD_ED
     char *exit_fn;              /* Function to be called when user exits */
     char *write_fn;             /* Function to be called when user writes */
@@ -120,13 +128,14 @@ typedef struct ed_buffer_s {
     int shiftwidth;
     int leading_blanks;
     int cur_autoindent;
+    int scroll_lines;
     int restricted;             /* restricted access ed */
 } ed_buffer_t;
 
 /*
  * ed.c
  */
-void ed_start (const char *, const char *, const char *, int, object_t *);
+void ed_start (const char *, const char *, const char *, int, object_t *, int);
 void ed_cmd (char *);
 void save_ed_buffer (object_t *);
 
@@ -142,7 +151,7 @@ void save_ed_buffer (object_t *);
 
 #ifndef OLD_ED
 char *object_ed_cmd (object_t *, const char *);
-char *object_ed_start (object_t *, const char *, int);
+char *object_ed_start (object_t *, const char *, int, int);
 int object_ed_mode (object_t *);
 void object_save_ed_buffer (object_t *);
 ed_buffer_t *find_ed_buffer (object_t *);

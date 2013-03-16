@@ -43,11 +43,10 @@ typedef struct {
 #define A_STRING_NEXT           14      /* next prog string in hash chain */
 #define A_STRING_REFS           15      /* reference count of prog string */
 #define A_INCLUDES              16      /* list of included files */
-#define A_PATCH                 17      /* for save_binary() */
-#define A_FUNCTIONALS           18
-#define A_FUNCTION_DEFS         19
-#define A_VAR_TEMP              20      /* table of variables */
-#define NUMAREAS                22
+#define A_FUNCTIONALS           17
+#define A_FUNCTION_DEFS         18
+#define A_VAR_TEMP              19      /* table of variables */
+#define NUMAREAS                20
 
 #define TREE_MAIN               0
 #define TREE_INIT               1
@@ -153,7 +152,7 @@ typedef struct compiler_temp_t {
 #define PROG_STRING(n)   (((const char **)mem_block[A_STRINGS].block)[n])
 #define CLASS(n)    ((class_def_t *)mem_block[A_CLASS_DEF].block + (n))
 
-#if !defined(__alpha) && !defined(cray)
+#if !defined(__alpha) && !defined(cray) && !defined(__sparc__)
 #define align(x) (((x) + 3) & ~3)
 #else
 #define align(x) (((x) + 7) & ~7)
@@ -234,8 +233,8 @@ void pop_func_block (void);
 int decl_fix (int);
 parse_node_t *check_refs (int, parse_node_t *, parse_node_t *);
 
-int lookup_any_class_member (char *, unsigned char *);
-int lookup_class_member (int, char *, unsigned char *);
+int lookup_any_class_member (char *, unsigned short *);
+int lookup_class_member (int, char *, unsigned short *);
 parse_node_t *reorder_class_values (int, parse_node_t *);
 
 parse_node_t *promote_to_float (parse_node_t *);
@@ -249,7 +248,7 @@ parse_node_t *throw_away_mapping (parse_node_t *);
 #define realloc_mem_block(m) do { \
     mem_block_t *M = m; \
     M->max_size <<= 1; \
-    M->block = DREALLOC(M->block, M->max_size, TAG_COMPILER, "realloc_mem_block"); \
+    M->block = (char *)DREALLOC(M->block, M->max_size, TAG_COMPILER, "realloc_mem_block"); \
 } while (0)
 
 #define add_to_mem_block(n, data, size) do { \
@@ -261,7 +260,7 @@ parse_node_t *throw_away_mapping (parse_node_t *);
             mbp->max_size <<= 1; \
         } while (mbp->current_size + Size > mbp->max_size); \
         \
-        mbp->block = DREALLOC(mbp->block, mbp->max_size, TAG_COMPILER, "insert_in_mem_block"); \
+        mbp->block = (char *)DREALLOC(mbp->block, mbp->max_size, TAG_COMPILER, "insert_in_mem_block"); \
     } \
     memcpy(mbp->block + mbp->current_size, data, Size); \
     mbp->current_size += Size; \
@@ -278,8 +277,8 @@ char *allocate_in_mem_block (int n, int size)
         do {
             mbp->max_size <<= 1;
         } while (mbp->current_size + size > mbp->max_size);
-        
-        mbp->block = DREALLOC(mbp->block, mbp->max_size, TAG_COMPILER, "insert_in_mem_block");
+
+        mbp->block = (char *)DREALLOC(mbp->block, mbp->max_size, TAG_COMPILER, "insert_in_mem_block");
     }
     ret = mbp->block + mbp->current_size;
     mbp->current_size += size;

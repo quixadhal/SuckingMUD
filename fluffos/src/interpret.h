@@ -37,6 +37,13 @@
 
 #define EXTRACT_UCHAR(p) (*(unsigned char *)(p))
 
+/* GCC's optimiser makes a reasonable job of optimising the READ_USHORT macro.
+ * -- Qwer
+ */
+
+#define READ_UCHAR(p) (*(unsigned char *) (p++))
+#define READ_USHORT(p) (p++, p++, *((unsigned short *) (p - 2)))
+
 /*
  * Control stack element.
  * 'prog' is usually same as 'ob->prog' (current_object), except when
@@ -53,12 +60,15 @@
 #define FRAME_EXTERNAL     8
 
 #define FRAME_RETURNED_FROM_CATCH   16
-
+struct defer_list{
+	struct defer_list *next;
+	svalue_t func;
+	svalue_t tp;
+};
 typedef struct control_stack_s {
 #ifdef PROFILE_FUNCTIONS
     unsigned long entry_secs, entry_usecs;
 #endif
-    short framekind;
     union {
         long table_index;
         funptr_t *funp;
@@ -66,13 +76,15 @@ typedef struct control_stack_s {
     object_t *ob;               /* Current object */
     object_t *prev_ob;  /* Save previous object */
     program_t *prog;    /* Current program */
-    int num_local_variables;    /* Local + arguments */
     char *pc;
     svalue_t *fp;
+    struct defer_list *defers;
+    int num_local_variables;    /* Local + arguments */
     int function_index_offset;  /* Used when executing functions in inherited
                                  * programs */
     int variable_index_offset;  /* Same */
     short caller_type;          /* was this a locally called function? */
+    short framekind;
 } control_stack_t;
 
 typedef struct {
@@ -277,7 +289,7 @@ INLINE void copy_some_svalues (svalue_t *, svalue_t *, int);
 INLINE void transfer_push_some_svalues (svalue_t *, int);
 INLINE void push_some_svalues (svalue_t *, int);
 #ifdef DEBUG
-INLINE void int_free_svalue (svalue_t *, char *);
+INLINE void int_free_svalue (svalue_t *, const char *);
 #else
 INLINE void int_free_svalue (svalue_t *);
 #endif
@@ -285,7 +297,7 @@ INLINE void free_string_svalue (svalue_t *);
 INLINE void free_some_svalues (svalue_t *, int);
 INLINE void push_object (object_t *);
 INLINE void push_number (long);
-INLINE void push_real (float);
+INLINE void push_real (double);
 INLINE void push_undefined (void);
 INLINE void copy_and_push_string (const char *);
 INLINE void share_and_push_string (const char *);
@@ -299,8 +311,8 @@ INLINE void push_mapping (mapping_t *);
 INLINE void push_refed_mapping (mapping_t *);
 INLINE void push_class (array_t *);
 INLINE void push_refed_class (array_t *);
-INLINE void push_malloced_string (char *);
-INLINE void push_shared_string (char *);
+INLINE void push_malloced_string (const char *);
+INLINE void push_shared_string (const char *);
 INLINE void push_constant_string (const char *);
 INLINE void pop_stack (void);
 INLINE void pop_n_elems (int);
@@ -317,6 +329,7 @@ void setup_variables (int, int, int);
 
 void process_efun_callback (int, function_to_call_t *, int);
 svalue_t *call_efun_callback (function_to_call_t *, int);
+svalue_t *safe_call_efun_callback (function_to_call_t *, int);
 const char *type_name (int c);
 void bad_arg (int, int);
 void bad_argument (svalue_t *, int, int, int);

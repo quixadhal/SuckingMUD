@@ -1,0 +1,2 @@
+SRC=math.c develop.c contrib.c sockets.c 
+OBJ=math.$(O) develop.$(O) contrib.$(O) sockets.$(O) 

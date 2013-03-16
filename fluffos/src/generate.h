@@ -1,7 +1,6 @@
 #ifndef _GENERATE_H
 #define _GENERATE_H
 
-#include "lint.h"
 #include "trees.h"
 #include "lpc_incl.h"
 #include "icode.h"
@@ -14,8 +13,8 @@
 #define uninitialize_parser i_uninitialize_parser
 
 int node_always_true (parse_node_t *);
-short generate (parse_node_t *);
-short generate_function (function_t *, parse_node_t *, int);
+ADDRESS_TYPE generate (parse_node_t *);
+ADDRESS_TYPE generate_function (function_t *, parse_node_t *, int);
 int generate_conditional_branch (parse_node_t *);
 
 #ifdef DEBUG

@@ -30,6 +30,7 @@
 #include "file.h"
 #include "main.h"
 #include "cc.h"
+#include "master.h"
 
 #define NELEM(a) (sizeof (a) / sizeof((a)[0]))
 #define LEX_EOF ((unsigned char) EOF)
@@ -121,7 +122,7 @@ int arrow_efun, evaluate_efun, this_efun, to_float_efun, to_int_efun, new_efun;
 keyword_t predefs[] =
 #include "efun_defs.c"
 
-const char *option_defs[] = 
+const char *option_defs[] =
 #include "option_defs.c"
 
 static keyword_t reswords[] =
@@ -139,7 +140,9 @@ static keyword_t reswords[] =
 #endif
     {"case", L_CASE, 0},
     {"catch", L_CATCH, 0},
+#ifdef STRUCT_CLASS
     {"class", L_CLASS, 0},
+#endif
 #ifdef COMPAT_32
     {"closure", L_BASIC_TYPE, TYPE_FUNCTION},
 #endif
@@ -184,6 +187,9 @@ static keyword_t reswords[] =
     {"status", L_BASIC_TYPE, TYPE_NUMBER},
 #endif
     {"string", L_BASIC_TYPE, TYPE_STRING},
+#ifdef STRUCT_STRUCT
+    {"struct", L_CLASS, 0},
+#endif
     {"switch", L_SWITCH, 0},
     {"time_expression", L_TIME_EXPRESSION, 0},
     {"varargs", L_TYPE_MODIFIER, FUNC_VARARGS },
@@ -220,7 +226,7 @@ static linked_buf_t *cur_lbuf;
 
 static void handle_define (char *);
 static void free_defines (void);
-static void add_define (const char *, int, char *);
+static void add_define (const char *, int, const char *);
 static void add_predefine (const char *, int, const char *);
 static int expand_define (void);
 static void add_input (const char *);
@@ -250,6 +256,21 @@ static void yyerrorp (const char *);
 
 #define LEXER
 #include "preprocess.c"
+
+int lookup_predef(const char * name)
+{
+    int x;
+
+    for(x = 0; x < (sizeof(predefs) / sizeof(keyword_t)); x++)
+    {
+        if(strcmp(name, predefs[x].word) == 0)
+        {
+            return x;
+        }
+    }
+
+    return -1;
+}
 
 static void merge (char * name, char * dest)
 {
@@ -370,7 +391,7 @@ skip_to (const char * token, const char * atoken)
             outp = yyp;
             refill_buffer();
             yyp = outp;
-        } 
+        }
     }
 }
 
@@ -379,10 +400,11 @@ inc_open (char * buf, char * name, int check_local)
 {
     int i, f;
     char *p;
-
+	const char *tmp;
     if (check_local) {
         merge(name, buf);
-        if ((f = open(buf, O_RDONLY)) != -1)
+        tmp = check_valid_path(buf, master_ob, "include", 0);
+        if (tmp && (f = open(tmp, O_RDONLY)) != -1)
             return f;
     }
     /*
@@ -394,7 +416,8 @@ inc_open (char * buf, char * name, int check_local)
     }
     for (i = 0; i < inc_list_size; i++) {
         sprintf(buf, "%s/%s", inc_list[i], name);
-        if ((f = open(buf, O_RDONLY)) != -1) {
+        tmp = check_valid_path(buf, master_ob, "include", 0);
+        if (tmp && (f = open(tmp, O_RDONLY)) != -1) {
             return f;
         }
     }
@@ -442,16 +465,17 @@ handle_include (char * name, int global)
         }
         return;
     }
-    name = nameptr = string_copy(name, "handle_include");
+    name = string_copy(name, "handle_include");
+    push_malloced_string(name);
     delim = *name++ == '"' ? '"' : '>';
     for (p = name; *p && *p != delim; p++);
     if (!*p) {
-        FREE_MSTR(nameptr);
+        pop_stack();
         include_error("Missing trailing \" or > in #include", global);
         return;
     }
     if (strlen(name) > sizeof(buf) - 100) {
-        FREE_MSTR(nameptr);
+        pop_stack();
         include_error("Include name too long.", global);
         return;
     }
@@ -481,7 +505,7 @@ handle_include (char * name, int global)
         sprintf(buf, "Cannot #include %s", name);
         include_error(buf, global);
     }
-    FREE_MSTR(nameptr);
+    pop_stack();
 }
 
 static int
@@ -565,7 +589,7 @@ get_array_block (char * term)
         }
 
         if (c == '\n' && (yyp == last_nl + 1)) {
-           outp = yyp; refill_buffer(); yyp = outp; 
+           outp = yyp; refill_buffer(); yyp = outp;
         }
 
         /*
@@ -747,7 +771,7 @@ get_text_block (char * term)
                         } while (*p);
                         *q = 0;
                     }
-                        
+
                     add_input(text_line[i]);
                 }
                 p = text_line[startchunk] + startpos + termlen;
@@ -837,7 +861,7 @@ static void skip_line()
     while (((c = *yyp++) != '\n') && (c != LEX_EOF));
 
     /* Next read of this '\n' will do refill_buffer() if neccesary */
-    if (c == '\n') yyp--; 
+    if (c == '\n') yyp--;
     outp = yyp;
 }
 
@@ -914,9 +938,6 @@ typedef struct {
 static pragma_t our_pragmas[] = {
     { "strict_types", PRAGMA_STRICT_TYPES },
     { "save_types", PRAGMA_SAVE_TYPES },
-#ifdef BINARIES
-    { "save_binary", PRAGMA_SAVE_BINARY },
-#endif
     { "warnings", PRAGMA_WARNINGS },
     { "optimize", PRAGMA_OPTIMIZE },
     { "show_error_context", PRAGMA_ERROR_CONTEXT },
@@ -958,7 +979,7 @@ char *show_error_context() {
         strcpy(buf, " at the end of the file\n");
         return buf;
     }
-    
+
     if (yychar == -1) strcpy(buf, " around ");
     else strcpy(buf, " before ");
     yyp = outp;
@@ -1001,9 +1022,9 @@ int correct_read(int handle, char *buf, unsigned int count)
 
 static void refill_buffer() {
     if (cur_lbuf != &head_lbuf) {
-        if (outp >= cur_lbuf->buf_end && 
+        if (outp >= cur_lbuf->buf_end &&
             cur_lbuf->term_type == TERM_ADD_INPUT) {
-            /* In this case it cur_lbuf cannot have been 
+            /* In this case it cur_lbuf cannot have been
                allocated due to #include */
             linked_buf_t *prev_lbuf = cur_lbuf->prev;
 
@@ -1032,17 +1053,26 @@ static void refill_buffer() {
             if (end - cur_lbuf->buf_end > MAXLINE + 5) {
                 p = cur_lbuf->buf_end;
             }
-            else {      
+            else {
                 /* No more space at the end */
                 size = cur_lbuf->buf_end - outp + 1;  /* Include newline */
                 memcpy(outp - MAXLINE - 1, outp - 1, size);
                 outp -= MAXLINE;
                 p = outp + size - 1;
             }
-                
+
             size = correct_read(yyin_desc, p, MAXLINE);
             cur_lbuf->buf_end = p += size;
-            if (size < MAXLINE) { *(last_nl = p) = LEX_EOF; return; }
+            if (size < MAXLINE) {
+            	*(last_nl = p) = LEX_EOF;
+            	if(*(last_nl-1) != '\n'){
+            		if(size +1 > MAXLINE)
+            			yyerror("No newline at end of file.");
+            		*p++ = '\n';
+            		*(last_nl = p) = LEX_EOF;
+            	}
+            	return;
+			}
             while (*--p != '\n');
             if (p == outp - 1) {
                 lexerror("Line too long.");
@@ -1059,7 +1089,7 @@ static void refill_buffer() {
             end = inctop->outp;
 
             /* See if we are the last include in a different linked buffer */
-            if (cur_lbuf->term_type == TERM_INCLUDE && 
+            if (cur_lbuf->term_type == TERM_INCLUDE &&
                 !(end >= cur_lbuf->buf && end < cur_lbuf->buf + DEFMAX)) {
                 end = cur_lbuf->buf_end;
                 flag = 1;
@@ -1093,8 +1123,15 @@ static void refill_buffer() {
             size = correct_read(yyin_desc, p, MAXLINE);
             end = p += size;
             if (flag) cur_lbuf->buf_end = p;
-            if (size < MAXLINE) { 
-                *(last_nl = p) = LEX_EOF; return; 
+            if (size < MAXLINE) {
+            	*(last_nl = p) = LEX_EOF;
+            	if(*(last_nl-1) != '\n'){
+            		if(size +1 > MAXLINE)
+            			yyerror("No newline at end of file.");
+            		*p++ = '\n';
+            		*(last_nl = p) = LEX_EOF;
+            	}
+            	return;
             }
             while (*--p != '\n');
             if (p == outp - 1) {
@@ -1107,7 +1144,7 @@ static void refill_buffer() {
         }
     }
 }
-        
+
 static int function_flag = 0;
 
 INLINE void push_function_context() {
@@ -1128,7 +1165,7 @@ INLINE void push_function_context() {
     fc->values_list = node;
     fc->bindable = 0;
     fc->parent = current_function_context;
-    
+
     current_function_context = fc;
 }
 
@@ -1157,7 +1194,7 @@ int yylex()
     static char partial[MAXLINE + 5];   /* extra 5 for safety buffer */
     static char terminator[MAXLINE + 5];
     int is_float;
-    float myreal;
+    double myreal;
     char *partp;
 
     register char *yyp;
@@ -1210,7 +1247,7 @@ int yylex()
             }
             if (iftop) {
                 ifstate_t *p = iftop;
-                                
+
                 yyerror(p->state == EXPECT_ENDIF ? "Missing #endif" : "Missing #else/#elif");
                 while (iftop) {
                     p = iftop;
@@ -1232,7 +1269,7 @@ int yylex()
 	    nexpands = 0;
 	    current_line++;
 	    total_lines++;
-	    if (outp == last_nl + 1) 
+	    if (outp == last_nl + 1)
 	      refill_buffer();
         case ' ':
         case '\f':
@@ -1341,7 +1378,7 @@ int yylex()
                         refill_buffer();
                         yyp = outp;
                     }
-                } 
+                }
             }
 #endif
             switch(c) {
@@ -1361,7 +1398,7 @@ int yylex()
                                     yyp = outp;
                                 }
                                 current_line++;
-                            } 
+                            }
                             c = *yyp++;
                         }
 
@@ -1376,7 +1413,7 @@ int yylex()
                         push_function_context();
                         return L_FUNCTION_OPEN;
                     }
-                        
+
                 }
                 default:
                 {
@@ -1486,7 +1523,7 @@ int yylex()
 
                     if (c == '"')
                         quote ^= 1;
-                    else if (c == '/' && !quote) {      
+                    else if (c == '/' && !quote) {
                         if (*outp == '*') {
                             outp++;
                             skip_comment();
@@ -1602,7 +1639,7 @@ int yylex()
                 case '\'': yylval.number = '\''; break;
                 case '"': yylval.number = '"'; break;
                 case '\\': yylval.number = '\\'; break;
-                case '0': case '1': case '2': case '3': case '4': 
+                case '0': case '1': case '2': case '3': case '4':
                 case '5': case '6': case '7': case '8': case '9':
                     outp--;
                     yylval.number = strtol(outp, &outp, 8);
@@ -1630,7 +1667,7 @@ int yylex()
                     if ((outp = last_nl + 1))
                         refill_buffer();
                     break;
-                default: 
+                default:
                     yywarn("Unknown \\ escape.");
                     yylval.number = *(outp - 1);
                     break;
@@ -1706,7 +1743,7 @@ int yylex()
                     case LEX_EOF:
                         lexerror("End of file in string");
                         return LEX_EOF;
-                        
+
                     case '"':
                         *to++ = 0;
                         if (!l && (to == scratch_end)) {
@@ -1721,14 +1758,14 @@ int yylex()
                         *to = to - scr_last;
                         yylval.string = (char *) scr_last;
                         return L_STRING;
-                        
+
                     case '\n':
                         current_line++;
                         total_lines++;
                         if (outp == last_nl + 1) refill_buffer();
                         *to++ = '\n';
                         break;
-                        
+
                     case '\\':
                         /* Don't copy the \ in yet */
                         switch((unsigned char)*outp++) {
@@ -1749,7 +1786,7 @@ int yylex()
                         case 'e': *to++ = '\x1b'; break;
                         case '"': *to++ = '"'; break;
                         case '\\': *to++ = '\\'; break;
-                        case '0': case '1': case '2': case '3': case '4': 
+                        case '0': case '1': case '2': case '3': case '4':
                         case '5': case '6': case '7': case '8': case '9':
                         {
                             int tmp;
@@ -1808,7 +1845,7 @@ int yylex()
                             yylval.string = res;
                             return L_STRING;
                         }
-                            
+
                         case '\n':
                             current_line++;
                             total_lines++;
@@ -1836,7 +1873,7 @@ int yylex()
                            case 'e': *yyp++ = '\x1b'; break;
                            case '"': *yyp++ = '"'; break;
                            case '\\': *yyp++ = '\\'; break;
-                           case '0': case '1': case '2': case '3': case '4': 
+                           case '0': case '1': case '2': case '3': case '4':
                            case '5': case '6': case '7': case '8': case '9':
                            {
                                int tmp;
@@ -1870,11 +1907,11 @@ int yylex()
                                yywarn("Unknown \\ escape.");
                            }
                            break;
-                           
+
                     default: *yyp++ = c;
                     }
                 }
-        
+
                 /* Not even enough length, declare too long string error */
                 lexerror("String too long");
                 *yyp++ = '\0';
@@ -1933,8 +1970,8 @@ int yylex()
             outp--;
             *yyp = 0;
             if (is_float) {
-                sscanf(yytext, "%f", &myreal);
-                yylval.real = (float)myreal;
+                sscanf(yytext, "%lf", &myreal);
+                yylval.real = myreal;
                 return L_REAL;
             } else {
                 yylval.number = atol(yytext);
@@ -2107,6 +2144,34 @@ void add_predefines()
     lpc_predef_t *tmpf;
 
     add_predefine("MUDOS", -1, "");
+    add_predefine("FLUFFOS", -1, "");
+#ifdef WIN32
+    add_predefine("__WIN32__", -1, "");
+#endif
+#ifdef RUSAGE
+    add_predefine("__HAS_RUSAGE__", -1, "");
+#endif
+#ifdef M64
+    add_predefine("__M64__", -1, "");
+#endif
+#ifdef PACKAGE_DB
+    add_predefine("__PACKAGE_DB__", -1, "");
+#endif
+#ifdef GET_CHAR_IS_BUFFERED
+    add_predefine("__GET_CHAR_IS_BUFFERED__", -1, "");
+#endif
+#ifdef PACKAGE_DSLIB
+    add_predefine("__DSLIB__", -1, "");
+#endif
+#ifdef PACKAGE_DWLIB
+    add_predefine("__DWLIB__", -1, "");
+#endif
+#ifdef FD_SETSIZE
+    sprintf(save_buf, "%d", FD_SETSIZE);
+#else
+    sprintf(save_buf, "%d", 64);
+#endif
+    add_predefine("__FD_SETSIZE__", -1, save_buf);
     get_version(save_buf);
     add_quoted_predefine("__VERSION__", save_buf);
     sprintf(save_buf, "%d", external_port[0].port);
@@ -2128,7 +2193,7 @@ void add_predefines()
 #ifdef F_PRINTF
     add_predefine("HAS_PRINTF", -1, "");
 #endif
-#if (defined(RUSAGE) || defined(GET_PROCESS_STATS) || defined(TIMES)) 
+#if (defined(RUSAGE) || defined(GET_PROCESS_STATS) || defined(TIMES))
     add_predefine("HAS_RUSAGE", -1, "");
 #endif
 #ifdef DEBUG_MACRO
@@ -2147,11 +2212,8 @@ void add_predefines()
         add_predefine(namebuf, -1, mtext);
     }
     sprintf(save_buf, "%ld", sizeof(long));
-    add_predefine("SIZEOFINT", -1, save_buf);
-    long tmp = (long)1<<31;
-    if(tmp > 0)
-      tmp = (long)1<<63;
-    sprintf(save_buf, "%ld", tmp-1);
+    add_predefine("SIZEOFINT", -1, save_buf);    
+    sprintf(save_buf, "%ld", LONG_MAX);
     add_predefine("MAX_INT", -1, save_buf);
 }
 
@@ -2285,7 +2347,7 @@ static void init_instrs()
     add_instr_name("expand_varargs", 0, F_EXPAND_VARARGS, -1);
     add_instr_name("next_foreach", "c_next_foreach();\n", F_NEXT_FOREACH, -1);
     add_instr_name("member_lvalue", "c_member_lvalue(%i);\n", F_MEMBER_LVALUE, T_LVALUE);
-    add_instr_name("index_lvalue", "push_indexed_lvalue(0);\n", 
+    add_instr_name("index_lvalue", "push_indexed_lvalue(0);\n",
                    F_INDEX_LVALUE, T_LVALUE|T_LVALUE_BYTE);
     add_instr_name("rindex_lvalue", "push_indexed_lvalue(1);\n",
                    F_RINDEX_LVALUE, T_LVALUE|T_LVALUE_BYTE);
@@ -2299,7 +2361,7 @@ static void init_instrs()
                    F_RN_RANGE_LVALUE, T_LVALUE_RANGE);
     add_instr_name("nn_range", "f_range(0x00);\n",
                    F_NN_RANGE, T_ARRAY|T_STRING OR_BUFFER);
-    add_instr_name("rr_range", "f_range(0x11);\n", 
+    add_instr_name("rr_range", "f_range(0x11);\n",
                    F_RR_RANGE, T_ARRAY|T_STRING OR_BUFFER);
     add_instr_name("nr_range", "f_range(0x01);\n",
                    F_NR_RANGE, T_ARRAY|T_STRING OR_BUFFER);
@@ -2367,8 +2429,8 @@ static void init_instrs()
     add_instr_name("aggregate", "C_AGGREGATE(%i);\n", F_AGGREGATE, T_ARRAY);
     add_instr_name("(::)", 0, F_FUNCTION_CONSTRUCTOR, T_FUNCTION);
     /* sorry about this one */
-    add_instr_name("simul_efun", 
-                   "call_simul_efun(%i, (lpc_int = %i + num_varargs, num_varargs = 0, lpc_int));\n", 
+    add_instr_name("simul_efun",
+                   "call_simul_efun(%i, (lpc_int = %i + num_varargs, num_varargs = 0, lpc_int));\n",
                    F_SIMUL_EFUN, T_ANY);
     add_instr_name("global_lvalue", "C_LVALUE(&current_object->variables[variable_index_offset + %i]);\n", F_GLOBAL_LVALUE, T_LVALUE);
     add_instr_name("|", "f_or();\n", F_OR, T_ARRAY | T_NUMBER);
@@ -2632,7 +2694,7 @@ void mark_all_defines() {
     int i;
     defn_t *tmp;
 
-    for (i = 0; i < inc_list_size; i++) 
+    for (i = 0; i < inc_list_size; i++)
         EXTRA_REF(BLOCK(inc_list[i]))++;
 
     for (i = 0; i < DEFHASH; i++) {
@@ -2978,7 +3040,7 @@ static int exgetc()
             strcmp(yytext, "efun_defined") == 0) {
             int efund = (yytext[0] == 'e');
             int flag;
-            
+
             /* handle the defined "function" in #if */
             do
                 c = *outp++;
@@ -3206,23 +3268,23 @@ void dump_ihe (ident_hash_elem_t * ihe, int noisy) {
         if (ihe->dn.function_num != -1) {
             if (noisy) printf("f");
             sv++;
-        } 
+        }
         if (ihe->dn.simul_num != -1) {
             if (noisy) printf("s");
             sv++;
-        } 
+        }
         if (ihe->dn.efun_num != -1) {
             if (noisy) printf("e");
             sv++;
-        } 
+        }
         if (ihe->dn.local_num != -1) {
             if (noisy) printf("l");
-            sv++; 
+            sv++;
         }
         if (ihe->dn.global_num != -1) {
             if (noisy) printf("g");
             sv++;
-        } 
+        }
         if (ihe->sem_value != sv) {
             if (noisy) {
                 printf("(*%i*)", ihe->sem_value - sv);
@@ -3359,7 +3421,7 @@ find_or_add_ident (const char * name, int flags) {
         hptr->next = hptr2->next;
         hptr2->next = hptr;
     }
-    
+
     if (flags & FOA_NEEDS_MALLOC) {
         hptr->name = alloc_local_name(name);
     } else {
@@ -3398,7 +3460,7 @@ void init_identifiers() {
     ident_hash_elem_t *ihe;
 
     init_instrs();
-    
+
     /* allocate all three tables together */
     ident_hash_table = CALLOCATE(IDENT_HASH_SIZE * 3, ident_hash_elem_t *,
                                  TAG_IDENT_TABLE, "init_identifiers");
@@ -3431,7 +3493,7 @@ void init_identifiers() {
                 new_efun = i;
             continue;
         }
-        
+
         ihe = find_or_add_perm_ident(predefs[i].word);
         ihe->token |= IHE_EFUN;
         ihe->sem_value++;

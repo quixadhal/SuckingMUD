@@ -10,7 +10,6 @@
 #include "std.h"
 #include "lpc_incl.h"
 #include "file_incl.h"
-#include "lint.h"
 #include "include/localtime.h"
 #include "port.h"
 #include "crypt.h"
@@ -140,13 +139,15 @@ f_localtime (void)
 #else                           /* sequent */
 #if (defined(hpux) || defined(_SEQUENT_) || defined(_AIX) || defined(SunOS_5) \
         || defined(SVR4) || defined(sgi) || defined(linux) || defined(cray) \
-       )
+        || defined(__CYGWIN__)\
+    )
     if (!tm->tm_isdst) {
         vec->item[LT_GMTOFF].u.number = timezone;
         vec->item[LT_ZONE].u.string = string_copy(tzname[0], "f_localtime");
     } else {
 #if (defined(_AIX) || defined(hpux) || defined(linux) || defined(cray) \
-        )
+	|| defined(__CYGWIN__)\
+	)
         vec->item[LT_GMTOFF].u.number = timezone;
 #else
         vec->item[LT_GMTOFF].u.number = altzone;
@@ -188,6 +189,8 @@ f_rusage (void)
     if (getrusage(RUSAGE_SELF, &rus) < 0) {
         m = allocate_mapping(0);
     } else {
+        char buf[256];
+	int fd;
         usertime = rus.ru_utime.tv_sec * 1000 + rus.ru_utime.tv_usec / 1000;
         stime = rus.ru_stime.tv_sec * 1000 + rus.ru_stime.tv_usec / 1000;
         maxrss = rus.ru_maxrss;
@@ -195,8 +198,7 @@ f_rusage (void)
         maxrss *= getpagesize() / 1024;
 #else
 #ifdef __linux__
-        int fd = open("/proc/self/statm", O_RDONLY);
-        char buf[256];
+        fd = open("/proc/self/statm", O_RDONLY);
         buf[read(fd, buf, 256)] = 0;
         close(fd);
         sscanf(buf, "%*d %d %*s", &maxrss);

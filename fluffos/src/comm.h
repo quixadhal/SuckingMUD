@@ -9,11 +9,11 @@
 #ifdef HAVE_ZLIB
 #include <zlib.h>
 #endif
-  
+
 #include "lpc_incl.h"
 #include "network_incl.h"
-#include "fliconv.h"
 
+#include "fliconv.h"
 
 #define MAX_TEXT                   2048
 #define MAX_SOCKET_PACKET_SIZE     1024
@@ -34,7 +34,7 @@
 #ifdef HAVE_ZLIB
 #define COMPRESS_BUF_SIZE MESSAGE_BUF_SIZE
 #endif
-  
+
 enum msgtypes {
     NAMEBYIP = 0, IPBYNAME, DATALEN
 };
@@ -65,6 +65,8 @@ enum msgtypes {
 #define SUPPRESS_GA         0x1000              /* suppress go ahead                       */
 #define USING_LINEMODE      0x2000              /* we've negotiated linemode               */
 #define USING_MXP           0x4000              /* we've negotiated mxp */
+#define USING_ZMP           0x8000              /* we've negotiated zmp */
+#define USING_GMCP			0x10000				/* we've negotiated gmcp */
 
 typedef struct interactive_s {
     object_t *ob;               /* points to the associated object         */
@@ -75,7 +77,11 @@ typedef struct interactive_s {
 #endif
     int connection_type;        /* the type of connection this is          */
     int fd;                     /* file descriptor for interactive object  */
+#ifdef IPV6
+    struct sockaddr_in6 addr;    /* socket address of interactive object    */
+#else
     struct sockaddr_in addr;    /* socket address of interactive object    */
+#endif
 #ifdef F_QUERY_IP_PORT
     int local_port;             /* which of our ports they connected to    */
 #endif
@@ -106,7 +112,7 @@ typedef struct interactive_s {
                                              compressed or not */
     unsigned char compress_buf[COMPRESS_BUF_SIZE]; /* compress message buffer*/
 #endif
-    
+
     int message_producer;       /* message buffer producer index */
     int message_consumer;       /* message buffer consumer index */
     int message_length;         /* message buffer length */
@@ -116,7 +122,8 @@ typedef struct interactive_s {
     int state;                  /* Current telnet state.  Bingly wop       */
     int sb_pos;                 /* Telnet suboption negotiation stuff      */
     struct translation *trans;
-    char sb_buf[SB_SIZE];
+    char *sb_buf;
+    int sb_size;
     char slc[NSLC][2];
 } interactive_t;
 
@@ -139,7 +146,7 @@ typedef struct interactive_s {
   *     set a variable named ip to ob->interactive, and save ob somewhere;
   *     or if you are just dealing with an ip as input, save ip->ob somewhere.
   *     After calling LPC code, check IP_VALID(ob), or use VALIDATE_IP.
-  * 
+  *
   * Yes, I know VALIDATE_IP uses a goto.  It's due to C's lack of proper
   * exception handling.  Only use it in subroutines that are set up
   * for it (i.e. define a failure label, and are set up to deal with
@@ -175,10 +182,14 @@ extern int add_message_calls;
 
 extern interactive_t **all_users;
 extern int max_users;
+#ifdef HAS_CONSOLE
+extern int has_console;
+extern void restore_sigttin(void);
+#endif
 
 void CDECL add_vmessage (object_t *, const char *, ...);
 void add_message (object_t *, const char *, int);
-void add_binary_message (object_t *, unsigned char *, int);
+void add_binary_message (object_t *, const unsigned char *, int);
 
 #ifdef SIGNAL_FUNC_TAKES_INT
 void sigalrm_handler (int);
@@ -199,7 +210,7 @@ void remove_interactive (object_t *, int);
 int flush_message (interactive_t *);
 int query_addr_number (const char *, svalue_t *);
 char *query_ip_name (object_t *);
-char *query_ip_number (object_t *);
+const char *query_ip_number (object_t *);
 char *query_host_name (void);
 int query_idle (object_t *);
 #ifndef NO_SNOOP

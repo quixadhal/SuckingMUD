@@ -7,7 +7,6 @@
 #include "compiler.h"
 #include "otable.h"
 #include "comm.h"
-#include "binaries.h"
 #include "socket_efuns.h"
 #include "md.h"
 #include "eoperators.h"
@@ -15,10 +14,16 @@
 #include "file.h"
 #include "packages/db.h"
 #include "packages/parser.h"
+#include "packages/async.h"
 #include "master.h"
 #include "add_action.h"
 #include "object.h"
 #include "eval.h"
+#ifdef DTRACE
+#include <sys/sdt.h>
+#else
+#define DTRACE_PROBE1(x,y,z)
+#endif
 
 /*
  * 'inherit_file' is used as a flag. If it is set to a string
@@ -369,29 +374,38 @@ object_t *int_load_object (const char * lname)
     object_t *ob;
     svalue_t *mret;
     struct stat c_st;
-    char real_name[200], name[200];
+    char real_name[400], name[400], actualname[400], obname[400];
 
+    const char *pname = check_valid_path(lname, master_ob, "load_object", 0);
+    if(!pname)
+    	error("Read access denied.\n");
     if (++num_objects_this_thread > INHERIT_CHAIN_SIZE)
         error("Inherit chain too deep: > %d when trying to load '%s'.\n", INHERIT_CHAIN_SIZE, lname);
 #ifdef PACKAGE_UIDS
     if (current_object && current_object->euid == NULL)
         error("Can't load objects when no effective user.\n");
 #endif
-    if (strrchr(lname, '#'))
+    if (strrchr(pname, '#'))
         error("Cannot load a clone.\n");
     if (!strip_name(lname, name, sizeof name))
         error("Filenames with consecutive /'s in them aren't allowed (%s).\n",
               lname);
+    if (!strip_name(pname, actualname, sizeof actualname))
+        error("Filenames with consecutive /'s in them aren't allowed (%s).\n",
+              pname);
 
     /*
      * First check that the c-file exists.
      */
-    (void) strcpy(real_name, name);
+    (void) strcpy(real_name, actualname);
     (void) strcat(real_name, ".c");
+
+    (void) strcpy(obname, name);
+        (void) strcat(obname, ".c");
 
     if (stat(real_name, &c_st) == -1 || S_ISDIR(c_st.st_mode)) {
         save_command_giver(command_giver);
-        ob = load_virtual_object(name, 0);
+        ob = load_virtual_object(actualname, 0);
         restore_command_giver();
         num_objects_this_thread--;
         return ob;
@@ -403,9 +417,7 @@ object_t *int_load_object (const char * lname)
         debug_message("Illegal pathname: /%s\n", real_name);
         error("Illegal path name '/%s'.\n", real_name);
     }
-#ifdef BINARIES
-    if (!(prog = load_binary(real_name, lpc_obj)) && !inherit_file) {
-#endif
+
         /* maybe move this section into compile_file? */
         if (comp_flag) {
             debug_message(" compiling /%s ...", real_name);
@@ -416,16 +428,14 @@ object_t *int_load_object (const char * lname)
             error("Could not read the file '/%s'.\n", real_name);
         }
 	save_command_giver(command_giver);
-	prog = compile_file(f, real_name);
+	prog = compile_file(f, obname);
 	restore_command_giver();
         if (comp_flag)
             debug_message(" done\n");
         update_compile_av(total_lines);
         total_lines = 0;
         close(f);
-#ifdef BINARIES
-    }
-#endif
+
 
     /* Sorry, can't handle objects without programs yet. */
     if (inherit_file == 0 && (num_parse_error > 0 || prog == 0)) {
@@ -525,10 +535,10 @@ object_t *int_load_object (const char * lname)
 
 static char *make_new_name (const char * str)
 {
-    static int i;
-    char *p = DXALLOC(strlen(str) + 10, TAG_OBJ_NAME, "make_new_name");
+    static unsigned int i;
+    char *p = (char *)DXALLOC(strlen(str) + 12, TAG_OBJ_NAME, "make_new_name");
 
-    (void) sprintf(p, "%s#%d", str, i);
+    (void) sprintf(p, "%s#%u", str, i);
     i++;
     return p;
 }
@@ -587,13 +597,14 @@ object_t *clone_object (const char * str1, int num_arg)
     reference_prog(ob->prog, "clone_object");
     DEBUG_CHECK(!current_object, "clone_object() from no current_object !\n");
 
-    init_object(new_ob);
-
     new_ob->next_all = obj_list;
     obj_list->prev_all = new_ob;
     new_ob->prev_all = 0;
     obj_list = new_ob;
     enter_object_hash(new_ob);  /* Add name to fast object lookup table */
+
+    init_object(new_ob);
+
     call_create(new_ob, num_arg);
     restore_command_giver();
     /* Never know what can happen ! :-( */
@@ -1012,6 +1023,7 @@ void destruct2 (object_t * ob)
     if(obj_list_dangling)
        obj_list_dangling->prev_all = ob;
     obj_list_dangling = ob;
+    ob->prev_all = 0;
 #endif
 
     free_object(&ob, "destruct_object");
@@ -1482,6 +1494,8 @@ sentence_t *alloc_sentence()
 #endif
     p->function.s = 0;
     p->next = 0;
+    p->ob = 0;
+    p->flags = 0;
     return p;
 }
 
@@ -1536,7 +1550,7 @@ void fatal (const char *fmt, ...)
     in_fatal = 1;
     V_START(args, fmt);
     V_VAR(char *, fmt, args);
-    vsprintf(msg_buf, fmt, args);
+    vsnprintf(msg_buf, 2048, fmt, args);
     va_end(args);
     debug_message("******** FATAL ERROR: %s\nFluffOS driver attempting to exit gracefully.\n", msg_buf);
     if (current_file)
@@ -1638,10 +1652,10 @@ static void add_message_with_location (char * err) {
 }
 
 #ifdef MUDLIB_ERROR_HANDLER
-static void mudlib_error_handler (char * err, int catch) {
+static void mudlib_error_handler (char * err, int katch) {
     mapping_t *m;
-    const char *file;
-    int line;
+    const char *file = NULL;
+    int line = 0;
     svalue_t *mret;
 
     m = allocate_mapping(6);
@@ -1651,12 +1665,15 @@ static void mudlib_error_handler (char * err, int catch) {
     if (current_object)
         add_mapping_object(m, "object", current_object);
     add_mapping_array(m, "trace", get_svalue_trace());
-    get_line_number_info(&file, &line);
-    add_mapping_malloced_string(m, "file", add_slash(file));
-    add_mapping_pair(m, "line", line);
+    if (current_prog)
+        get_line_number_info(&file, &line);
+    if(file)
+        add_mapping_malloced_string(m, "file", add_slash(file));
+    if(line)
+        add_mapping_pair(m, "line", line);
 
     push_refed_mapping(m);
-    if (catch) {
+    if (katch) {
         STACK_INC;
         *sp = const1;
         mret = apply_master_ob(APPLY_ERROR_HANDLER,2);
@@ -1819,10 +1836,10 @@ void error (const char * const fmt, ...)
 
     V_START(args, fmt);
     V_VAR(char *, fmt, args);
-    vsprintf(err_buf + 1, fmt, args);
+    vsnprintf(err_buf + 1, 2046, fmt, args);
     va_end(args);
     err_buf[0] = '*';           /* all system errors get a * at the start */
-
+    DTRACE_PROBE1(fluffos, error, (char *)err_buf);
     error_handler(err_buf);
 }
 
@@ -1853,6 +1870,10 @@ void shutdownMudOS (int exit_code)
 #ifdef PACKAGE_MUDLIB_STATS
     save_stat_files();
 #endif
+#ifdef PACKAGE_ASYNC
+    complete_all_asyncio();
+#endif
+
 #ifdef PACKAGE_DB
     db_cleanup();
 #endif
@@ -1906,7 +1927,7 @@ void slow_shut_down (int minutes)
     }
 }
 
-void do_message (svalue_t * class, svalue_t * msg, array_t * scope, array_t * exclude, int recurse)
+void do_message (svalue_t * lclass, svalue_t * msg, array_t * scope, array_t * exclude, int recurse)
 {
     int i, j, valid;
     object_t *ob;
@@ -1934,7 +1955,7 @@ void do_message (svalue_t * class, svalue_t * msg, array_t * scope, array_t * ex
                 }
             }
             if (valid) {
-                push_svalue(class);
+                push_svalue(lclass);
                 push_svalue(msg);
                 apply(APPLY_RECEIVE_MESSAGE, ob, 2, ORIGIN_DRIVER);
             }
@@ -1944,7 +1965,7 @@ void do_message (svalue_t * class, svalue_t * msg, array_t * scope, array_t * ex
             array_t *tmp;
 
             tmp = all_inventory(ob, 1);
-            do_message(class, msg, tmp, exclude, 0);
+            do_message(lclass, msg, tmp, exclude, 0);
             free_array(tmp);
         }
 #endif
