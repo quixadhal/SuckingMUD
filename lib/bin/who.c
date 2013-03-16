@@ -1,7 +1,8 @@
+/* vim:set ft=lpc: */
+/* Last Indented: 1360770374 */
 #include <command.h>
 
-int
-main(string arg)
+int main(string arg)
 {
     object *list;
     int j;
@@ -10,10 +11,10 @@ main(string arg)
     printf("--------------------      ----\n");
     for (list = users(), j = 0; j < sizeof(list); j++) {
         printf("%-25s %4d\n", (string)list[j]->query_name() +
-        (in_edit(this_player()) ? "*" : "") +
-        (in_input(this_player()) ? "+" : ""),
-        query_idle(this_player()) / 60
-        );
+                (in_edit(this_player()) ? "*" : "") +
+                (in_input(this_player()) ? "+" : ""),
+                query_idle(this_player()) / 60
+              );
     }
     return 1;
 }

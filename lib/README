@@ -1,7 +1,7 @@
 This directory contains a version of the Lil mudlib with additional code
 added to provide a testsuite for MudOS.  Currently the testsuite is small
 but hopefully it will grow with time (assuming the MudOS developers add
-to it).  The efun tests are in the ./single/efuns directory with one efun
+to it).  The efun tests are in the ./daemon/efuns directory with one efun
 tested per file (named after the efun).  Each efun test should attempt to tell
 all (each case/branch) of the driver code that implements that particular
 efun.  In addition, the efun tests should attempt to fully test the

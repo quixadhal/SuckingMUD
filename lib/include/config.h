@@ -1,3 +1,5 @@
+/* vim:set ft=lpc: */
+/* Last Indented: 1360770374 */
 /*
  * if "global include file" is specified in the config file, this header
  * file is automatically included by all objects; otherwise, you have to

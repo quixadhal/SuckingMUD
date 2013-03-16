@@ -1,3 +1,5 @@
+/* vim:set ft=lpc: */
+/* Last Indented: 1360770374 */
 /* /include/type.h */
 
 #ifndef _TYPE_H

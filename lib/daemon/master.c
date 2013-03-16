@@ -1,39 +1,114 @@
+/* vim:set ft=lpc: */
+/* Last Indented: 1360770374 */
 // file: /daemon/master.c
 
 #include <globals.h>
 
-// /inherit/master/valid.c contains all the valid_* functions
-inherit "/inherit/master/valid";
+void create()
+{
+}
 
-void flag(string str) {
-    switch (str) {
-    case "test":
-    "/command/tests"->main();
-    break;
-    case "sprintf":
-    {
-        string foo = "This is a test.\n";
-        string bar = "Of the sprintf benchmark system.\n";
-        string bazz = "This is only a test.\n";
-        
-        for (int i = 0; i < 10000; i++) {
-        sprintf("Let's see if %20|s this is any %-100s faster than the %20i old way.%s", foo, bar, 42, bazz);
-        }
-        shutdown();
-        break;
+int valid_shadow(object ob)
+{
+    if (ob->query_prevent_shadow(previous_object())) {
+        return 0;
     }
-    default:
-    write("Unknown flag.\n");
+    return 1;
+}
+
+int valid_author(string)
+{
+    return 1;
+}
+
+// valid_override: controls which simul_efuns may be overridden with
+// efun:: prefix and which may not.  This function is only called at
+// object compile-time.
+//
+// returns: 1 if override is allowed, 0 if not.
+
+int valid_override(string file, string name)
+{
+    if (file == OVERRIDES_FILE) {
+        return 1;
+    }
+    if ((name == "move_object") && (file != BASE))
+        return 0;
+    //  may also wish to protect destruct, shutdown, snoop, and exec.
+    return 1;
+}
+
+// valid_seteuid: determines whether an object ob can become euid str.
+// returns: 1 if seteuid() may succeed, 0 if not.
+
+int valid_seteuid(object, string)
+{
+    return 1;
+}
+
+// valid_domain: decides if a domain may be created
+// returns: 1 if domain may be created, 0 if not.
+
+int valid_domain(string)
+{
+    return 1;
+} 
+
+// valid_socket: controls access to socket efunctions
+// return: 1 if access allowed, 0 if not.
+
+    int
+valid_socket(object, string, mixed *)
+{
+    return 1;
+}
+
+// Write and Read privileges:
+//
+// valid_write: called with the file name, the object initiating the call,
+//  and the function by which they called it. 
+// return: 1 if access allowed, 0 if access not allowed.
+
+int valid_write(string, mixed, string)
+{
+    return 1;
+}
+
+// valid_read:  called exactly the same as valid_write()
+
+int valid_read(string, mixed, string)
+{
+    return 1;
+}
+
+private int y = 1;
+
+void flag(string str)
+{
+    switch (str) {
+        case "sprintf":
+            {
+                string foo = "This is a test.\n";
+                string bar = "Of the sprintf benchmark system.\n";
+                string bazz = "This is only a test.\n";
+
+                for (int i = 0; i < 10000; i++) {
+                    sprintf("Let's see if %20|s this is any %-100s faster than the %20i old way.%s", foo, bar, 42, bazz);
+                }
+                shutdown();
+                break;
+            }
+        default:
+            write("Unknown flag.\n");
     }
     shutdown();
 }
 
-object
-connect()
+object connect()
 {
     object login_ob;
     mixed err;
-   
+
     err = catch(login_ob = new(LOGIN_OB));
 
     if (err) {
@@ -49,10 +124,9 @@ connect()
 // filename named by 'file'.  It should return 0 if no object is to be
 // associated.
 
-mixed
-compile_object(string file)
+mixed compile_object(string file)
 {
-//    return (mixed)VIRTUAL_D->compile_object(file);
+    //    return (mixed)VIRTUAL_D->compile_object(file);
     return 0;
 }
 
@@ -60,15 +134,14 @@ compile_object(string file)
 // etc.  As it's static it can't be called by anything but the driver (and
 // master).
 
-staticf void
-crash(string, object, object)
+protected void crash(string, object, object)
 {
     error("foo\n");
     foreach (object ob in users())
         tell_object(ob, "Master object shouts: Damn!\nMaster object tells you: The game is crashing.\n");
 #if 0
     log_file("crashes", MUD_NAME + " crashed on: " + ctime(time()) +
-        ", error: " + error + "\n");
+            ", error: " + error + "\n");
     if (command_giver) {
         log_file("crashes", "this_player: " + file_name(command_giver) + "\n");
     }
@@ -84,8 +157,7 @@ crash(string, object, object)
 // Return:          Array of nonblank lines that don't begin with '#'
 // Note:            must be declared static (else a security hole)
 
-staticf string *
-update_file(string file)
+protected string * update_file(string file)
 {
     string *arr;
     string str;
@@ -107,8 +179,7 @@ update_file(string file)
 // Function name:       epilog
 // Return:              List of files to preload
 
-string *
-epilog(int)
+string * epilog(int)
 {
     string *items;
 
@@ -118,8 +189,7 @@ epilog(int)
 
 // preload an object
 
-void
-preload(string file)
+void preload(string file)
 {
     int t1;
     string err;
@@ -141,8 +211,7 @@ preload(string file)
 // Write an error message into a log file. The error occured in the object
 // 'file', giving the error message 'message'.
 
-void
-log_error(string, string message)
+void log_error(string, string message)
 {
     write_file(LOG_DIR + "/compile", message);
 }
@@ -151,19 +220,14 @@ log_error(string, string message)
 // individual options settings. These functions are located in the master
 // object so that the local admins can decide what strategy they want to use.
 
-int
-save_ed_setup(object who, int code)
+int save_ed_setup(object who, int code)
 {
-   string file;
-  
+    string file;
+
     if (!intp(code)) {
         return 0;
     }
-#ifdef __PACKAGE_UIDS__
-    file = user_path(getuid(who)) + ".edrc";
-#else
-   file = "/.edrc";
-#endif
+    file = user_path(who) + ".edrc";
     rm(file);
     return write_file(file, code + "");
 }
@@ -171,17 +235,12 @@ save_ed_setup(object who, int code)
 // Retrieve the ed setup. No meaning to defend this file read from
 // unauthorized access.
 
-int
-retrieve_ed_setup(object who)
+int retrieve_ed_setup(object who)
 {
-   string file;
-   int code;
-  
-#ifdef __PACKAGE_UIDS__   
-    file = user_path(getuid(who)) + ".edrc";
-#else
-   file = "/.edrc";
-#endif
+    string file;
+    int code;
+
+    file = user_path(who) + ".edrc";
     if (file_size(file) <= 0) {
         return 0;
     }
@@ -192,8 +251,7 @@ retrieve_ed_setup(object who)
 // When an object is destructed, this function is called with every
 // item in that room.  We get the chance to save users from being destructed.
 
-void
-destruct_environment_of(object ob)
+void destruct_environment_of(object ob)
 {
     if (!interactive(ob)) {
         return;
@@ -204,75 +262,64 @@ destruct_environment_of(object ob)
 
 // make_path_absolute: This is called by the driver to resolve path names in ed.
 
-string
-make_path_absolute(string file)
+string make_path_absolute(string file)
 {
     file = resolve_path((string)this_player()->query_cwd(), file);
     return file;
 }
 
-string
-get_root_uid()
+string creator_file(string str)
 {
-   return ROOT_UID;
+    return (string)call_other(DAEMON_DIR + "/simul_efun", "creator_file", str);
 }
 
-string
-get_bb_uid()
+string domain_file(string str)
 {
-   return BACKBONE_UID;
+    return (string)call_other(DAEMON_DIR + "/simul_efun", "domain_file", str);
 }
 
-string
-creator_file(string str)
+string author_file(string str)
 {
-    return (string)call_other(SINGLE_DIR + "/simul_efun", "creator_file", str);
+    return (string)call_other(DAEMON_DIR + "/simul_efun", "author_file", str);
 }
 
-string
-domain_file(string str)
+string privs_file(string f)
 {
-    return (string)call_other(SINGLE_DIR + "/simul_efun", "domain_file", str);
-}
-
-string
-author_file(string str)
-{
-    return (string)call_other(SINGLE_DIR + "/simul_efun", "author_file", str);
-}
-
-string privs_file(string f) {
     return f;
 }
 
-staticf void error_handler(mapping map, int flag) {
-  object ob;
-  string str;
+protected void error_handler(mapping map, int flag)
+{
+    object ob;
+    string str;
 
-  ob = this_interactive() || this_player();
-  if (flag) str = "*Error caught\n";
-  else str = "";
-  str += sprintf("Error: %s\nCurrent object: %O\nCurrent program: %s\nFile: %O Line: %d\n%O\n",
-         map["error"], (map["object"] || "No current object"),
-         (map["program"] || "No current program"),
-         map["file"], map["line"],
-         implode(map_array(map["trace"],
-                   (: sprintf("Line: %O  File: %O Object: %O Program: %O", $1["line"], $1["file"], $1["object"] || "No object", $1["program"] ||
-                          "No program") :)), "\n"));
-  write_file("/log/log", str);
-  if (!flag && ob) tell_object(ob, str);
+    ob = this_interactive() || this_player();
+    if (flag) str = "*Error caught\n";
+    else str = "";
+    str += sprintf("Error: %s\nCurrent object: %O\nCurrent program: %s\nFile: %O Line: %d\n%O\n",
+            map["error"], (map["object"] || "No current object"),
+            (map["program"] || "No current program"),
+            map["file"], map["line"],
+            implode(map_array(map["trace"],
+                    (: sprintf("Line: %O  File: %O Object: %O Program: %O", $1["line"], $1["file"], $1["object"] || "No object", $1["program"] ||
+                               "No program") :)), "\n"));
+    write_file("/log/log", str);
+    if (!flag && ob) tell_object(ob, str);
 }
-     
-int valid_bind() {
+
+int valid_bind()
+{
     // This is really unsafe, but testsuite uses it to test bind()
     return 1;
 }
 
-int valid_hide() {
+int valid_hide()
+{
     // same here
     return 1;
 }
 
-int valid_compile_to_c() {
+int valid_compile_to_c()
+{
     return 1;
 }

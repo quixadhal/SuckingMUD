@@ -1,11 +1,9 @@
 ----------------------------------------------------------------------------
-Testsuite (MudOS v22.2b14) starting up on Solaris - Thu Jan  4 17:50:10 2007
+Lil (FluffOS v2.24) starting up on Linux - Sat Mar  2 00:29:23 2013
 
 
-Connection to address server (localhost 7374) refused.
+Connected to address server on localhost port 9950
 Initializations complete.
 
-Accepting connections on port 4000.
-******** FATAL ERROR: Process interrupted
-MudOS driver attempting to exit gracefully.
-crash() in master called successfully.  Aborting.
+Accepting connections on port 9900.
+closed external ports
