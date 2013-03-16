@@ -13,7 +13,7 @@ void logon()
 {
     object user;
 
-    write("Welcome to Lil!\n\n");
+    write("Welcome to BallsMUD!\n\n");
     cat("/etc/motd");
     write("\n> ");
     user= new("/clone/user");

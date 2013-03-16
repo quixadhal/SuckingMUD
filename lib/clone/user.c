@@ -27,7 +27,7 @@ string query_cwd()
 
 void logon()
 {
-    write("Welcome to Lil.\n> ");
+    write("Welcome to BallsMUD.\n> ");
 }
 
 // query_name: called by various objects needing to know this user's name.

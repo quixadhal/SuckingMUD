@@ -22,8 +22,11 @@ Instructions:
 * type: make install
 * type: cp ../bin/driver ../../bin/
 * type: cd ../../bin
-* type: vi lil.cfg
+* type: vi balls.cfg
 * change the mud bin and lib paths to wherever you put the mud.
-* type: ./driver ./lil.cfg &
+* type: ./driver ./balls.cfg &
 
 -Cratylus 13 Feb 2008
+
+Renamed as BallsMUD by Quixadhal, March 15, 2013.
+
