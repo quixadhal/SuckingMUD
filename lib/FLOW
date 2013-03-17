@@ -1,2 +1,11 @@
-At bootup, the driver loads master.c
+At bootup, the driver loads master.c, then simul_efun.c.
+
+Once loaded, the function epilog() is called.
+For each filename returned, the driver called preload(), passing
+the filename as an argument.
+
+Finally, when a user connects to the main port, the function
+connect() is called.  If it returns an object, that objects
+is marked as interactive, and the function logon() is called
+in it.
 

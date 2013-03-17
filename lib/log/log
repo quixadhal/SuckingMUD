@@ -1,0 +1,116 @@
+*Error caught
+Error: *Error in loading object '/daemon/account'
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 202
+"Line: 202  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c"
+Line: 202  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+Error: *foo
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 139
+"Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+*Error caught
+Error: *Error in loading object '/clone/login'
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 112
+"Line: 112  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c"
+Line: 112  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+Error: *foo
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 139
+"Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+*Error caught
+Error: *Error in loading object '/clone/login'
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 112
+"Line: 112  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c"
+Line: 112  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+Error: *foo
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 139
+"Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+*Error caught
+Error: *Error in loading object '/clone/login'
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 112
+"Line: 112  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c"
+Line: 112  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+*Error caught
+Error: *Error in loading object '/clone/login'
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 112
+"Line: 112  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c"
+Line: 112  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+*Error caught
+Error: *Error in loading object '/clone/login'
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 112
+"Line: 112  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c"
+Line: 112  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+Error: *call_other() couldn't find object
+
+Current object: /clone/login#0
+Current program: /clone/login.c
+File: "/clone/login.c" Line: 48
+"Line: 48  File: "/clone/login.c" Object: /clone/login#0 Program: "/clone/login.c""
+Error: *foo
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 139
+"Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+Error: *foo
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 139
+"Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+Error: *foo
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 139
+"Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+*Error caught
+Error: *Error in loading object '/daemon/account'
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 203
+"Line: 203  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c"
+Line: 203  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+Error: *Error in loading object '/daemon/account'
+
+Current object: /clone/login#0
+Current program: /clone/login.c
+File: "/clone/login.c" Line: 36
+"Line: 36  File: "/clone/login.c" Object: /clone/login#0 Program: "/clone/login.c""
+Error: *foo
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 139
+"Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+Error: *foo
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 139
+"Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""

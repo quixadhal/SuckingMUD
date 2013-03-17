@@ -65,7 +65,7 @@
  *   * Faster than SMALLOC but more memory overhead.
  *   * Requires sbrk().
  */
-#define SYSMALLOC
+#undef SYSMALLOC
 #undef SMALLOC
 #undef BSDMALLOC
 #undef MMALLOC
@@ -892,7 +892,8 @@
 #undef PACKAGE_SHA1
 
 #undef MALLOC32
-#define MALLOC64
+#undef MALLOC64
+#define SYSMALLOC
 #define WARN_OLD_RANGE_BEHAVIOR
 #define STRUCT_CLASS
 #define STRUCT_STRUCT

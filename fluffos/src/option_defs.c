@@ -33,7 +33,6 @@
   "__FLUFFOS__", "",
   "__BINARIES__", "",
   "__CFG_COMPILER_STACK_SIZE__", "600",
-  "__MALLOC64__", "",
   "__LARGE_STRING_SIZE__", "1000",
   "__HEARTBEAT_INTERVAL__", "2",
   "__COMMAND_BUF_SIZE__", "2000",
@@ -61,5 +60,5 @@
   "__MUDLIB_ERROR_HANDLER__", "",
 };
 
-#define NUM_OPTION_DEFS 60
+#define NUM_OPTION_DEFS 59
 

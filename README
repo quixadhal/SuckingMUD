@@ -22,11 +22,11 @@ Instructions:
 * type: make install
 * type: cp ../bin/driver ../../bin/
 * type: cd ../../bin
-* type: vi balls.cfg
+* type: vi sucky.cfg
 * change the mud bin and lib paths to wherever you put the mud.
-* type: ./driver ./balls.cfg &
+* type: ./driver ./sucky.cfg &
 
 -Cratylus 13 Feb 2008
 
-Renamed as BallsMUD by Quixadhal, March 15, 2013.
+Renamed as SuckyMUD by Quixadhal, March 15, 2013.
 

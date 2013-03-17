@@ -1,9 +1,12 @@
 ----------------------------------------------------------------------------
-Lil (FluffOS v2.24) starting up on Linux - Sat Mar  2 00:29:23 2013
+SuckyMUD (FluffOS v2.24) starting up on Linux - Sat Mar 16 23:34:16 2013
 
 
-Connected to address server on localhost port 9950
+
+Loading preloaded files ...
 Initializations complete.
 
 Accepting connections on port 9900.
-closed external ports
+******** FATAL ERROR: Process interrupted
+FluffOS driver attempting to exit gracefully.
+crash() in master called successfully.  Aborting.

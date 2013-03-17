@@ -51,7 +51,7 @@ varargs int getoid(object ob)
 
 string user_cwd(string name)
 {
-    return ("/u/" + name[0..0] + "/" + name);
+    return (USER_DIR "/" + name[0..0] + "/" + name);
 }
 
 string user_path(string name)
@@ -67,7 +67,7 @@ string file_owner(string file)
 
     if (file[0] != '/') file = "/" + file;
 
-    if (sscanf(file, "/u/%s/%s/%*s", temp, temp) == 2) {
+    if (sscanf(file, USER_DIR "/%s/%s/%*s", temp, temp) == 2) {
         return temp;
     }
     return 0;
@@ -191,6 +191,24 @@ string author_file(string)
     return 0;
 }
 
+// What is this?
 void simul()
 {
 }
+
+// Returns true if the file exists, false otherwise.
+int file_exists(string filename)
+{
+    return sizeof(stat(filename)) > 0;
+}
+
+// Returns a formatted timestamp from the time passed in.
+string timestamp(int theTime)
+{
+    mixed array timeinfo = localtime(theTime);
+    return sprintf("%04d-%02d-%02d %02d:%02d:%02d %s",
+            timeinfo[5], timeinfo[4], timeinfo[3],
+            timeinfo[2], timeinfo[1], timeinfo[0],
+            timeinfo[9]);
+}
+

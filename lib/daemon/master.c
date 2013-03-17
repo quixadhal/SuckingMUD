@@ -183,7 +183,7 @@ string * epilog(int)
 {
     string *items;
 
-    items = update_file(CONFIG_DIR + "/preload");
+    items = update_file(CONFIG_DIR "/preload");
     return items;
 }
 
@@ -192,6 +192,7 @@ string * epilog(int)
 void preload(string file)
 {
     int t1;
+    int t2;
     string err;
 
     if (file_size(file + ".c") == -1)
@@ -199,12 +200,13 @@ void preload(string file)
 
     t1 = time();
     write("Preloading : " + file + "...");
-    err = catch(call_other(file, "??"));
+    t2 = time_expression { err = catch(call_other(file, "??")); };
     if (err != 0) {
         write("\nError " + err + " when loading " + file + "\n");
     } else {
         t1 = time() - t1;
-        write("(" + t1/60 + "." + t1 % 60 + ")\n");
+        //write("(" + t1/60 + "." + t1 % 60 + ")\n");
+        write(sprintf("(%05.3f)\n", t2/1000000.0));
     }
 }
 
@@ -213,7 +215,7 @@ void preload(string file)
 
 void log_error(string, string message)
 {
-    write_file(LOG_DIR + "/compile", message);
+    write_file(LOG_DIR "/compile", message);
 }
 
 // save_ed_setup and restore_ed_setup are called by the ed to maintain
@@ -270,17 +272,17 @@ string make_path_absolute(string file)
 
 string creator_file(string str)
 {
-    return (string)call_other(DAEMON_DIR + "/simul_efun", "creator_file", str);
+    return (string)call_other(DAEMON_DIR "/simul_efun", "creator_file", str);
 }
 
 string domain_file(string str)
 {
-    return (string)call_other(DAEMON_DIR + "/simul_efun", "domain_file", str);
+    return (string)call_other(DAEMON_DIR "/simul_efun", "domain_file", str);
 }
 
 string author_file(string str)
 {
-    return (string)call_other(DAEMON_DIR + "/simul_efun", "author_file", str);
+    return (string)call_other(DAEMON_DIR "/simul_efun", "author_file", str);
 }
 
 string privs_file(string f)
