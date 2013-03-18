@@ -155,6 +155,7 @@ void tell_room(object ob, string msg)
 
 void net_dead()
 {
+    ACCOUNT_D->set_offline(query_name());
     set_heart_beat(0);
     tell_room(environment(), query_name() + " is link-dead.\n");
 }
@@ -163,7 +164,8 @@ void net_dead()
 
 void reconnect()
 {
+    ACCOUNT_D->set_online(query_name());
     set_heart_beat(1);
-    receive("Reconnected.\n");
+    receive("\nReconnected.\n");
     tell_room(environment(), query_name() + " has reconnected.\n");
 }

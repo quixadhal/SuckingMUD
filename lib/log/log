@@ -114,3 +114,39 @@ Current object: /daemon/master
 Current program: /daemon/master.c
 File: "/daemon/master.c" Line: 139
 "Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+Error: *Error in loading object '/bin/shutdown'
+
+Current object: /clone/user#1
+Current program: /clone/user.c
+File: "/clone/user.c" Line: 98
+"Line: 98  File: "/clone/user.c" Object: /clone/user#1 Program: "/clone/user.c""
+Error: *foo
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 139
+"Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+Error: *Error in loading object '/bin/shutdown'
+
+Current object: /clone/user#1
+Current program: /clone/user.c
+File: "/clone/user.c" Line: 98
+"Line: 98  File: "/clone/user.c" Object: /clone/user#1 Program: "/clone/user.c""
+Error: *foo
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 139
+"Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""
+Error: *Error in loading object '/bin/shutdown'
+
+Current object: /clone/user#3
+Current program: /clone/user.c
+File: "/clone/user.c" Line: 98
+"Line: 98  File: "/clone/user.c" Object: /clone/user#3 Program: "/clone/user.c""
+Error: *foo
+
+Current object: /daemon/master
+Current program: /daemon/master.c
+File: "/daemon/master.c" Line: 139
+"Line: 139  File: "/daemon/master.c" Object: /daemon/master Program: "/daemon/master.c""

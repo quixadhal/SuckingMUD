@@ -151,6 +151,18 @@ protected void crash(string, object, object)
 #endif
 }
 
+// This only gets called if reserved size is set in the config file,
+// and if the driver runs out of heap space and starts using the
+// reserved memory block.
+
+protected int slow_shutdown(int minutes)
+{
+    foreach (object ob in users())
+        tell_object(ob, "Master object shouts: The game is crashing in " + minutes + " minutes!\n");
+
+    return 1;
+}
+
 // Function name:   update_file
 // Description:     reads in a file, ignoring lines that begin with '#'
 // Arguements:      file: a string that shows what file to read in.

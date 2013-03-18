@@ -2,6 +2,9 @@
 /* Last Indented: 1360770374 */
 // file: globals.h
 
+#ifndef __GLOBALS_H__
+#define __GLOBALS_H__
+
 #define BIN_DIR         "/bin"
 #define DAEMON_DIR      "/daemon"
 #define CLONE_DIR       "/clone"
@@ -41,3 +44,4 @@
 #define WRITE_FILE_APPEND       0
 #define WRITE_FILE_OVERWRITE    1
 
+#endif

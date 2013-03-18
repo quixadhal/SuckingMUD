@@ -13,6 +13,7 @@ private void create_user_object(string name)
 {
     object user;
 
+    ACCOUNT_D->set_online(name);
     write("\n");
     cat(MOTD);
     write("\n");
@@ -51,8 +52,16 @@ void get_username(string name)
 
 void get_password(string password, string name)
 {
+    object user;
+
     if(ACCOUNT_D->password_match(name, password)) {
-        create_user_object(name);
+        if(user = find_player(name)) {
+            exec(user, this_object());
+            user->reconnect();
+            destruct(this_object());
+        } else {
+            create_user_object(name);
+        }
     } else {
         write("\nInvalid login.\nlogin: ");
         input_to("get_username", INPUT_TO_NOBYPASS);

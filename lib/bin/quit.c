@@ -7,7 +7,7 @@ int main(string arg)
 {
     string name = previous_object()->query_name();
 
-    ACCOUNT_D->set_logout(name, time());
+    ACCOUNT_D->set_offline(name);
     write("Bye.\n");
     say((string)previous_object()->query_name()
             + " leaves this reality.\n");

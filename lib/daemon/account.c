@@ -142,3 +142,22 @@ void set_email(string name, string email) {
     save_object(ACCOUNT_DATA);
 }
 
+void set_offline(string name) {
+    if(!account_exists(name))
+        return;
+
+    accounts[name]["online"] = 0;
+    accounts[name]["last logout"] = time();
+    accounts[name]["total played"] += ( accounts[name]["last logout"] - accounts[name]["last login"] );
+    save_object(ACCOUNT_DATA);
+}
+
+void set_online(string name) {
+    if(!account_exists(name))
+        return;
+
+    accounts[name]["online"] = 1;
+    accounts[name]["last login"] = time();
+    save_object(ACCOUNT_DATA);
+}
+
