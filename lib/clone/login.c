@@ -85,8 +85,13 @@ void verify_new_password(string new_password, string password, string name)
 void new_email(string email, string name, string password)
 {
     if(ACCOUNT_D->valid_email(email)) {
-        ACCOUNT_D->create_account(name, password, email);
-        create_user_object(name);
+        if(!ACCOUNT_D->account_exists(name)) {
+            ACCOUNT_D->create_account(name, password, email);
+            create_user_object(name);
+        } else {
+            write("Somebody else JUST beat you to that account name!\nlogin: ");
+            input_to("get_username", INPUT_TO_NOBYPASS);
+        }
     } else {
         write("Invalid email.\nPlease, enter an email address: ");
         input_to("new_email", INPUT_TO_NOBYPASS, name, password);
