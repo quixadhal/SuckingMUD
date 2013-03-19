@@ -27,8 +27,7 @@ private void create_user_object(string name)
 
 void logon()
 {
-    write("Welcome to SuckingMUD!\n\n");
-    write("login: ");
+    printf("Welcome to %s (SuckingMUD mudlib %s).\n\n%s login: ", __VERSION__, MUDLIB_VERSION, MUD_NAME);
     input_to("get_username", INPUT_TO_NOBYPASS);
 }
 
@@ -44,7 +43,7 @@ void get_username(string name)
             write("Hello " + name + ", enter a password: ");
             input_to("new_password", INPUT_TO_NOBYPASS|INPUT_TO_NOECHO, name);
         } else {
-            write("\nInvalid login.\nlogin: ");
+            printf("\nLogin incorrect\n\n%s login: ", MUD_NAME);
             input_to("get_username", INPUT_TO_NOBYPASS);
         }
     }
@@ -63,7 +62,7 @@ void get_password(string password, string name)
             create_user_object(name);
         }
     } else {
-        write("\nInvalid login.\nlogin: ");
+        printf("\nLogin incorrect\n\n%s login: ", MUD_NAME);
         input_to("get_username", INPUT_TO_NOBYPASS);
     }
 }
@@ -74,7 +73,7 @@ void new_password(string password, string name)
         write("\nenter it again: ");
         input_to("verify_new_password", INPUT_TO_NOBYPASS|INPUT_TO_NOECHO, password, name);
     } else {
-        write("\nInvalid password.\nEnter a password: ");
+        write("\nInvalid password.\n\nEnter a password: ");
         input_to("new_password", INPUT_TO_NOBYPASS|INPUT_TO_NOECHO, name);
     }
 }
@@ -82,7 +81,7 @@ void new_password(string password, string name)
 void verify_new_password(string new_password, string password, string name)
 {
     if(new_password != password) {
-        write("\nPassword mismatch.\nEnter a password: ");
+        write("\nPassword mismatch.\n\nEnter a password: ");
         input_to("new_password", INPUT_TO_NOBYPASS|INPUT_TO_NOECHO, name);
         return;
     } else {
@@ -98,11 +97,11 @@ void new_email(string email, string name, string password)
             ACCOUNT_D->create_account(name, password, email);
             create_user_object(name);
         } else {
-            write("Somebody else JUST beat you to that account name!\nlogin: ");
+            printf("Somebody else JUST beat you to that account name!\n\n%s login: ", MUD_NAME);
             input_to("get_username", INPUT_TO_NOBYPASS);
         }
     } else {
-        write("Invalid email.\nPlease, enter an email address: ");
+        write("Invalid email.\n\nPlease, enter an email address: ");
         input_to("new_email", INPUT_TO_NOBYPASS, name, password);
     }
 }

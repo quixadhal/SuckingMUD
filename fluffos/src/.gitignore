@@ -16,3 +16,4 @@ func_spec.cpp
 grammar.tab.c
 grammar.tab.h
 grammar.y
+dtrace_compile

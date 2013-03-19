@@ -27,7 +27,7 @@ string query_cwd()
 
 void logon()
 {
-    write("Welcome to SuckingMUD.\n> ");
+    printf("Welcome to %s.\n\n> ", MUD_NAME);
 }
 
 // query_name: called by various objects needing to know this user's name.
