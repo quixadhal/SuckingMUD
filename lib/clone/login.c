@@ -27,7 +27,7 @@ private void create_user_object(string name)
 
 void logon()
 {
-    write("Welcome to SuckyMUD!\n\n");
+    write("Welcome to SuckingMUD!\n\n");
     write("login: ");
     input_to("get_username", INPUT_TO_NOBYPASS);
 }
