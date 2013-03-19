@@ -5,7 +5,7 @@
 #ifndef __GLOBALS_H__
 #define __GLOBALS_H__
 
-#define MUDLIB_VERSION  "0.006"
+#define MUDLIB_VERSION  "1.006"
 
 #define BIN_DIR         "/bin"
 #define DAEMON_DIR      "/daemon"
